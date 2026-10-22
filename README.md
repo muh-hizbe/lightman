@@ -100,7 +100,7 @@ Output akan ada di folder `dist/`.
 
 ### Build Aplikasi Desktop (Tauri)
 
-Untuk menghasilkan binary dan installer aplikasi desktop siap distribusi:
+Perintah build untuk semua platform sama, namun harus dijalankan di OS masing-masing:
 
 ```bash
 npm run tauri build
@@ -113,20 +113,62 @@ Proses ini akan:
 
 > **Catatan:** Build pertama kali bisa memakan waktu 5–15 menit karena Rust mengkompilasi semua crate dari awal.
 
-### Hasil Build
+### Hasil Build per OS
 
-Setelah `npm run tauri build` selesai, output installer tersedia di:
+#### Windows
 
-| Platform | Path | Format |
-|----------|------|--------|
-| Windows  | `src-tauri/target/release/bundle/msi/` | `.msi` (installer) |
-| Windows  | `src-tauri/target/release/bundle/nsis/` | `.exe` (installer NSIS) |
-| Windows  | `src-tauri/target/release/` | `lightman.exe` (portable) |
-| Linux    | `src-tauri/target/release/bundle/deb/` | `.deb` (installer Debian/Ubuntu) |
-| Linux    | `src-tauri/target/release/bundle/rpm/` | `.rpm` (installer Fedora/RHEL) |
-| Linux    | `src-tauri/target/release/bundle/appimage/` | `.AppImage` (portable) |
-| macOS    | `src-tauri/target/release/bundle/dmg/` | `.dmg` (installer) |
-| macOS    | `src-tauri/target/release/bundle/macos/` | `.app` (aplikasi) |
+```bash
+npm run tauri build
+```
+
+| Format | Path | Keterangan |
+|--------|------|------------|
+| `.msi` | `src-tauri/target/release/bundle/msi/` | Installer MSI |
+| `.exe` | `src-tauri/target/release/bundle/nsis/` | Installer NSIS |
+| `.exe` | `src-tauri/target/release/lightman.exe` | Binary portable |
+
+Contoh output:
+```
+src-tauri/target/release/bundle/msi/lightman_0.1.0_x64_en-US.msi
+src-tauri/target/release/bundle/nsis/lightman_0.1.0_x64-setup.exe
+src-tauri/target/release/lightman.exe
+```
+
+#### Linux
+
+```bash
+npm run tauri build
+```
+
+| Format | Path | Keterangan |
+|--------|------|------------|
+| `.deb` | `src-tauri/target/release/bundle/deb/` | Installer Debian/Ubuntu |
+| `.rpm` | `src-tauri/target/release/bundle/rpm/` | Installer Fedora/RHEL |
+| `.AppImage` | `src-tauri/target/release/bundle/appimage/` | Portable AppImage |
+
+Contoh output:
+```
+src-tauri/target/release/bundle/deb/lightman_0.1.0_amd64.deb
+src-tauri/target/release/bundle/rpm/lightman-0.1.0-1.x86_64.rpm
+src-tauri/target/release/bundle/appimage/lightman_0.1.0_amd64.AppImage
+```
+
+#### macOS
+
+```bash
+npm run tauri build
+```
+
+| Format | Path | Keterangan |
+|--------|------|------------|
+| `.dmg` | `src-tauri/target/release/bundle/dmg/` | Installer DMG |
+| `.app` | `src-tauri/target/release/bundle/macos/` | Bundel aplikasi macOS |
+
+Contoh output:
+```
+src-tauri/target/release/bundle/dmg/Lightman_0.1.0_aarch64.dmg
+src-tauri/target/release/bundle/macos/Lightman.app
+```
 
 > Build menghasilkan format installer sesuai OS tempat Anda melakukan build. Untuk membuat build lintas platform (cross-compile), gunakan CI/CD pipeline (mis. GitHub Actions) dengan runner masing-masing OS.
 
