@@ -140,6 +140,30 @@ pub async fn delete_environment(db: DbHandle, id: String) -> Result<(), String> 
     storage::delete_environment(db, id).await
 }
 
+/// Deactivate all environments so that no environment is active.
+///
+/// This is the "No environment" state — variable substitution will use only
+/// global variables when no environment is active.
+pub async fn clear_active_environment(db: DbHandle) -> Result<(), String> {
+    let all = storage::list_environments(db.clone()).await?;
+    let now = Utc::now().to_rfc3339();
+
+    for env in &all {
+        if env.is_active {
+            storage::update_environment(
+                db.clone(),
+                env.id.clone(),
+                env.name.clone(),
+                false,
+                now.clone(),
+            )
+            .await?;
+        }
+    }
+
+    Ok(())
+}
+
 /// Set a single environment as active, deactivating all others.
 ///
 /// This is an atomic operation: all environments are deactivated first, then

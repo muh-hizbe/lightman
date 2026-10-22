@@ -20,6 +20,7 @@ export default function Toolbar({ sidebarOpen, onToggleSidebar }: ToolbarProps) 
     activeEnvironmentId,
     loadEnvironments,
     setActiveEnvironment,
+    clearActiveEnvironment,
     loadVariables,
     loadGlobalVariables,
   } = useEnvStore();
@@ -98,12 +99,14 @@ export default function Toolbar({ sidebarOpen, onToggleSidebar }: ToolbarProps) 
 
   const handleEnvChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
-    if (value) {
-      try {
+    try {
+      if (value) {
         await setActiveEnvironment(value);
-      } catch {
-        // Silently ignore — the user can retry.
+      } else {
+        await clearActiveEnvironment();
       }
+    } catch {
+      // Silently ignore — the user can retry.
     }
   };
 

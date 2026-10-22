@@ -88,6 +88,17 @@ pub async fn set_active_environment(
     svc::set_active_environment(db.inner().clone(), id).await
 }
 
+/// Deactivate all environments so that no environment is active ("No environment" state).
+///
+/// # Frontend call
+/// ```ts
+/// invoke<void>('clear_active_environment')
+/// ```
+#[tauri::command]
+pub async fn clear_active_environment(db: State<'_, DbHandle>) -> Result<(), String> {
+    svc::clear_active_environment(db.inner().clone()).await
+}
+
 // ---------------------------------------------------------------------------
 // Variable commands
 // ---------------------------------------------------------------------------

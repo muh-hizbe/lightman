@@ -16,8 +16,8 @@ use commands::collection::{
 
 use commands::environment::{
     create_environment, list_environments, update_environment, delete_environment,
-    set_active_environment, create_variable, list_variables, update_variable, delete_variable,
-    list_global_variables,
+    set_active_environment, clear_active_environment, create_variable, list_variables,
+    update_variable, delete_variable, list_global_variables,
 };
 
 use commands::http::send_request;
@@ -81,6 +81,7 @@ pub fn run() {
             update_environment,
             delete_environment,
             set_active_environment,
+            clear_active_environment,
             // Variable commands (Task 8.2)
             create_variable,
             list_variables,

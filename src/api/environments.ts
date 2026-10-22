@@ -30,6 +30,10 @@ export function setActiveEnvironment(id: string): Promise<Environment> {
   return invoke("set_active_environment", { id });
 }
 
+export function clearActiveEnvironment(): Promise<void> {
+  return invoke("clear_active_environment");
+}
+
 // ---------------------------------------------------------------------------
 // Variable API
 // ---------------------------------------------------------------------------

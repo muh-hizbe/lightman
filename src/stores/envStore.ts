@@ -26,6 +26,7 @@ interface EnvState {
   updateEnvironment: (id: string, name: string) => Promise<void>;
   deleteEnvironment: (id: string) => Promise<void>;
   setActiveEnvironment: (id: string) => Promise<void>;
+  clearActiveEnvironment: () => Promise<void>;
 
   // ---------------------------------------------------------------------------
   // Actions — Variables
@@ -113,6 +114,14 @@ export const useEnvStore = create<EnvState>((set, _get) => ({
         e.id === id ? updated : { ...e, is_active: false }
       ),
       activeEnvironmentId: id,
+    }));
+  },
+
+  clearActiveEnvironment: async () => {
+    await api.clearActiveEnvironment();
+    set((s) => ({
+      environments: s.environments.map((e) => ({ ...e, is_active: false })),
+      activeEnvironmentId: null,
     }));
   },
 
