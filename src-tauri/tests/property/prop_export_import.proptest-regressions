@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc deb65e4cf21ad79209358573a38547f79b4b2fcf4308461e7fbb417935a228ee # shrinks to col_name = "a", req_count = 0, req_names = ["a", "a", "A", "A", "A", "a", "a", "0"], req_urls = ["http://aaa.aa", "http://aaa.aa", "http://aaa.aa", "http://aaa.aa", "http://aaa.aa", "http://aab.oiwt", "https://vlkxkf.zfwt/n/k9yg/q9bz2j", "https://wno.bwuf/69oo9q/c3g5uqy9"], req_methods = [Post, Options, Delete, Get, Delete, Put, Options, Patch], req_bodies = [None, Json { content: ".e5]}nb\"N 6rA[Z{1u.SO..:f\"Ea.]1St}\"B" }, Raw { content: " .__08P_PpPM 2.b6pg. d7_tCPi.1 .K ._itM4", content_type: "text/plain" }, None, Json { content: ".\"" }, None, FormUrlEncoded { fields: [MultipartField { key: "Pcn-KBrg4Lk-4sbfrISh", value: "  qg_tl7_ b h  1/wUV B/RXia-/ MpV3vF7X Aa A XqRyly", enabled: false }, MultipartField { key: "e-Cl2JC6V0UO-D--Yu5T2xe-5-Y7y-", value: "ojL.EK", enabled: false }] }, None]

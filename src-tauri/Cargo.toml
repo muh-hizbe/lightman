@@ -1,0 +1,142 @@
+[package]
+name = "lightman"
+version = "0.1.0"
+description = "Lightman — A lightweight, privacy-first API client desktop application"
+authors = ["you"]
+edition = "2024"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+# The `_lib` suffix may seem redundant but it is necessary
+# to make the lib name unique and wouldn't conflict with the bin name.
+# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
+name = "lightman_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# HTTP client
+reqwest = { version = "0.12", features = ["json", "multipart", "cookies"] }
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# Database
+rusqlite = { version = "0.32", features = ["bundled"] }
+
+# Utilities
+uuid = { version = "1", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+base64 = "0.22"
+
+[dev-dependencies]
+# Property-based testing
+proptest = "1"
+# Mock HTTP server for property tests
+wiremock = "0.6"
+tokio = { version = "1", features = ["full"] }
+
+# ---------------------------------------------------------------------------
+# Integration tests
+# ---------------------------------------------------------------------------
+[[test]]
+name = "test_export_import_file"
+path = "tests/integration/test_export_import_file.rs"
+
+[[test]]
+name = "test_performance_smoke"
+path = "tests/integration/test_performance_smoke.rs"
+
+[[test]]
+name = "test_send_request_e2e"
+path = "tests/integration/test_send_request_e2e.rs"
+
+[[test]]
+name = "test_startup_loading"
+path = "tests/integration/test_startup_loading.rs"
+
+# ---------------------------------------------------------------------------
+# Property tests
+# ---------------------------------------------------------------------------
+[[test]]
+name = "prop_auth"
+path = "tests/property/prop_auth.rs"
+
+[[test]]
+name = "prop_export_import"
+path = "tests/property/prop_export_import.rs"
+
+[[test]]
+name = "prop_http_execution"
+path = "tests/property/prop_http_execution.rs"
+
+[[test]]
+name = "prop_inherited_headers"
+path = "tests/property/prop_inherited_headers.rs"
+
+[[test]]
+name = "prop_name_constraints"
+path = "tests/property/prop_name_constraints.rs"
+
+[[test]]
+name = "prop_persistence"
+path = "tests/property/prop_persistence.rs"
+
+[[test]]
+name = "prop_samples"
+path = "tests/property/prop_samples.rs"
+
+[[test]]
+name = "prop_variable_resolution"
+path = "tests/property/prop_variable_resolution.rs"
+
+# ---------------------------------------------------------------------------
+# Unit tests
+# ---------------------------------------------------------------------------
+[[test]]
+name = "test_collection_service"
+path = "tests/unit/test_collection_service.rs"
+
+[[test]]
+name = "test_export_service"
+path = "tests/unit/test_export_service.rs"
+
+[[test]]
+name = "test_header_merger"
+path = "tests/unit/test_header_merger.rs"
+
+[[test]]
+name = "test_http_executor"
+path = "tests/unit/test_http_executor.rs"
+
+[[test]]
+name = "test_import_service"
+path = "tests/unit/test_import_service.rs"
+
+[[test]]
+name = "test_request_service"
+path = "tests/unit/test_request_service.rs"
+
+[[test]]
+name = "test_var_interpolator"
+path = "tests/unit/test_var_interpolator.rs"
+
+# Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+panic = "abort"
+strip = true
