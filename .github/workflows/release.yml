@@ -1,0 +1,56 @@
+name: "Release App"
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish-tauri:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'macos-latest' # Menghasilkan binary macOS (.dmg / .app)
+            args: '--target universal-apple-darwin'
+          - platform: 'ubuntu-22.04' # Menghasilkan binary Linux (.AppImage / .deb)
+            args: ''
+          - platform: 'windows-latest' # Menghasilkan binary Windows (.msi / .exe)
+            args: ''
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: install dependencies (ubuntu only)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget libssl-dev libayatana-appindicator3-dev librsvg2-dev
+
+      - name: install frontend dependencies
+        run: npm install # Ganti pnpm/yarn jika menggunakan package manager lain
+
+      - name: build tauri app
+        uses: tauri-apps/tauri-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: __VERSION__
+          releaseName: 'App Release v__VERSION__'
+          releaseBody: 'Lihat changelog untuk detail perubahan.'
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}

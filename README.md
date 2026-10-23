@@ -129,8 +129,8 @@ npm run tauri build
 
 Contoh output:
 ```
-src-tauri/target/release/bundle/msi/lightman_0.1.0_x64_en-US.msi
-src-tauri/target/release/bundle/nsis/lightman_0.1.0_x64-setup.exe
+src-tauri/target/release/bundle/msi/lightman_1.0.0_x64_en-US.msi
+src-tauri/target/release/bundle/nsis/lightman_1.0.0_x64-setup.exe
 src-tauri/target/release/lightman.exe
 ```
 
@@ -148,9 +148,9 @@ npm run tauri build
 
 Contoh output:
 ```
-src-tauri/target/release/bundle/deb/lightman_0.1.0_amd64.deb
-src-tauri/target/release/bundle/rpm/lightman-0.1.0-1.x86_64.rpm
-src-tauri/target/release/bundle/appimage/lightman_0.1.0_amd64.AppImage
+src-tauri/target/release/bundle/deb/lightman_1.0.0_amd64.deb
+src-tauri/target/release/bundle/rpm/lightman-1.0.0-1.x86_64.rpm
+src-tauri/target/release/bundle/appimage/lightman_1.0.0_amd64.AppImage
 ```
 
 #### macOS
@@ -166,7 +166,7 @@ npm run tauri build
 
 Contoh output:
 ```
-src-tauri/target/release/bundle/dmg/Lightman_0.1.0_aarch64.dmg
+src-tauri/target/release/bundle/dmg/Lightman_1.0.0_aarch64.dmg
 src-tauri/target/release/bundle/macos/Lightman.app
 ```
 
@@ -201,7 +201,7 @@ Konfigurasi build dan bundle ada di `src-tauri/tauri.conf.json`:
 ```json
 {
   "productName": "Lightman",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "identifier": "com.lightman.app",
   "bundle": {
     "active": true,
