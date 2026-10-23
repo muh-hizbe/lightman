@@ -16,3 +16,11 @@ export function sendRequest(
 ): Promise<HttpResponse> {
   return invoke("send_request", { request, environmentId });
 }
+
+/**
+ * Cancel the currently in-flight HTTP request.
+ * No-op if no request is running.
+ */
+export function cancelRequest(): Promise<void> {
+  return invoke("cancel_request");
+}

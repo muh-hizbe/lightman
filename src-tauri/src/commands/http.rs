@@ -5,6 +5,7 @@
 // Requirements: 1.2, 1.4, 1.5, 3.2, 9.1, 4.1
 
 use chrono::Utc;
+use std::sync::Mutex;
 use tauri::State;
 use uuid::Uuid;
 
@@ -14,6 +15,14 @@ use crate::services::http_executor::HttpExecutorService;
 use crate::services::var_interpolator::VarInterpolatorService;
 use crate::storage::DbHandle;
 use crate::{services, storage};
+
+// ---------------------------------------------------------------------------
+// CancelHandle — managed state for the in-flight request task
+// ---------------------------------------------------------------------------
+
+/// Holds the `AbortHandle` of the currently running HTTP request task so that
+/// `cancel_request` can abort it from a separate Tauri command invocation.
+pub struct CancelHandle(pub Mutex<Option<tokio::task::AbortHandle>>);
 
 // ---------------------------------------------------------------------------
 // send_request command
@@ -43,6 +52,7 @@ use crate::{services, storage};
 #[tauri::command]
 pub async fn send_request(
     db: State<'_, DbHandle>,
+    cancel_handle: State<'_, CancelHandle>,
     request: Request,
     environment_id: Option<String>,
 ) -> Result<HttpResponse, String> {
@@ -118,9 +128,45 @@ pub async fn send_request(
 
     // -----------------------------------------------------------------------
     // 5. Execute the HTTP request (Requirements 1.1, 1.2, 1.5)
+    //    Spawn the network call as an abortable task so that `cancel_request`
+    //    can abort it at any time by calling `AbortHandle::abort()`.
     // -----------------------------------------------------------------------
     let executor = HttpExecutorService::new()?;
-    let response = executor.execute(&final_request).await?;
+
+    // Spawn the network I/O on the Tokio runtime so we get a JoinHandle.
+    let task = tokio::spawn(async move { executor.execute(&final_request).await });
+
+    // Store the AbortHandle in managed state so `cancel_request` can abort it.
+    {
+        let mut guard = cancel_handle
+            .0
+            .lock()
+            .map_err(|_| "Failed to acquire cancel lock".to_string())?;
+        *guard = Some(task.abort_handle());
+    }
+
+    // Await the task. A JoinError with `is_cancelled()` means the user
+    // hit Cancel; any other error is propagated as-is.
+    let response = task
+        .await
+        .map_err(|e| {
+            if e.is_cancelled() {
+                "Request cancelled".to_string()
+            } else {
+                format!("Request task panicked: {e}")
+            }
+        })?
+        // The inner Result<HttpResponse, String> from executor.execute
+        .map_err(|e| e)?;
+
+    // Clear the stored handle — the task has completed.
+    {
+        let mut guard = cancel_handle
+            .0
+            .lock()
+            .map_err(|_| "Failed to acquire cancel lock".to_string())?;
+        *guard = None;
+    }
 
     // -----------------------------------------------------------------------
     // 6. Persist a HistoryEntry (Requirement 4.1)
@@ -156,6 +202,32 @@ pub async fn send_request(
     // 7. Return the response to the frontend (Requirement 1.5)
     // -----------------------------------------------------------------------
     Ok(response)
+}
+
+// ---------------------------------------------------------------------------
+// cancel_request command
+// ---------------------------------------------------------------------------
+
+/// Abort the currently in-flight HTTP request, if any.
+///
+/// Calling this when no request is in flight is a no-op (returns `Ok(())`).
+///
+/// # Frontend call
+/// ```ts
+/// invoke('cancel_request')
+/// ```
+#[tauri::command]
+pub fn cancel_request(cancel_handle: State<'_, CancelHandle>) -> Result<(), String> {
+    let mut guard = cancel_handle
+        .0
+        .lock()
+        .map_err(|_| "Failed to acquire cancel lock".to_string())?;
+
+    if let Some(handle) = guard.take() {
+        handle.abort();
+    }
+
+    Ok(())
 }
 
 // ---------------------------------------------------------------------------

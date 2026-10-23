@@ -1204,7 +1204,7 @@ function PathParamsTable({
 // ---------------------------------------------------------------------------
 
 export default function RequestBuilder() {
-  const { draft, sending, sendError, updateDraft, sendDraftRequest } = useRequestStore();
+  const { draft, sending, sendError, updateDraft, sendDraftRequest, cancelDraftRequest } = useRequestStore();
   const { activeEnvironmentId } = useEnvStore();
   const { updateRequest } = useCollectionStore();
   const [activeTab, setActiveTab] = useState<TabId>("params");
@@ -1244,6 +1244,10 @@ export default function RequestBuilder() {
 
   const handleSend = () => {
     sendDraftRequest(activeEnvironmentId);
+  };
+
+  const handleCancel = () => {
+    cancelDraftRequest();
   };
 
   // Save the current draft back to the collection (only if it has an id).
@@ -1310,15 +1314,25 @@ export default function RequestBuilder() {
           validKeys={validKeys}
         />
 
-        {/* Send button */}
-        <button
-          className="btn btn--primary url-bar__send"
-          onClick={handleSend}
-          disabled={sending || !hasUrl}
-          aria-busy={sending}
-        >
-          {sending ? "Sending…" : "Send"}
-        </button>
+        {/* Send / Cancel button */}
+        {sending ? (
+          <button
+            className="btn btn--danger url-bar__send"
+            onClick={handleCancel}
+            aria-label="Cancel request"
+          >
+            Cancel
+          </button>
+        ) : (
+          <button
+            className="btn btn--primary url-bar__send"
+            onClick={handleSend}
+            disabled={!hasUrl}
+            aria-busy={false}
+          >
+            Send
+          </button>
+        )}
 
         {/* Save button — only shown when a saved request is loaded */}
         {isSaved && (

@@ -20,7 +20,7 @@ use commands::environment::{
     update_variable, delete_variable, list_global_variables,
 };
 
-use commands::http::send_request;
+use commands::http::{cancel_request, send_request};
 
 use commands::history::{
     list_history_entries, search_history_entries, delete_history_entry, clear_history,
@@ -57,6 +57,7 @@ pub fn run() {
                 .map_err(|e| format!("Failed to initialise database: {e}"))?;
 
             app.manage(db);
+            app.manage(commands::http::CancelHandle(std::sync::Mutex::new(None)));
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -90,6 +91,7 @@ pub fn run() {
             list_global_variables,
             // HTTP command (Task 9.1)
             send_request,
+            cancel_request,
             // History commands (Task 10.2)
             list_history_entries,
             search_history_entries,

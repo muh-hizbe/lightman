@@ -14,7 +14,7 @@ import type {
   RequestBody,
 } from "../types";
 import { DEFAULT_AUTH, DEFAULT_BODY } from "../types";
-import { sendRequest } from "../api/http";
+import { sendRequest, cancelRequest } from "../api/http";
 
 // ---------------------------------------------------------------------------
 // Path param helpers (frontend-only — substituted into URL before send)
@@ -127,6 +127,9 @@ interface RequestState {
 
   /** Execute the draft request against the Rust backend. */
   sendDraftRequest: (environmentId: string | null) => Promise<void>;
+
+  /** Cancel the currently in-flight request. */
+  cancelDraftRequest: () => Promise<void>;
 
   /** Clear the last response and any error. */
   clearResponse: () => void;
@@ -277,5 +280,16 @@ export const useRequestStore = create<RequestState>((set, get) => ({
         ? Object.fromEntries(Object.entries(s.responseCache).filter(([k]) => k !== draft.id))
         : s.responseCache,
     }));
+  },
+
+  cancelDraftRequest: async () => {
+    try {
+      await cancelRequest();
+    } catch {
+      // Ignore errors — if nothing was in-flight, the backend is a no-op.
+    }
+    // Immediately clear the sending flag so the UI reacts without waiting
+    // for the send promise to reject.
+    set({ sending: false, sendError: null });
   },
 }));
