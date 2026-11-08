@@ -656,7 +656,7 @@ dependencies = [
 
 [[package]]
 name = "core_detect"
-version = "1.0.0"
+version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f8f80099a98041a3d1622845c271458a2d73e688351bf3cb999266764b81d48"
 
@@ -828,7 +828,7 @@ dependencies = [
 
 [[package]]
 name = "defmt-parser"
-version = "1.0.0"
+version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "10d60334b3b2e7c9d91ef8150abfb6fa4c1c39ebbcf4a81c2e346aad939fee3e"
 dependencies = [
@@ -2275,7 +2275,7 @@ dependencies = [
 
 [[package]]
 name = "lightman"
-version = "1.0.0"
+version = "1.0.3"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -2423,7 +2423,7 @@ dependencies = [
 
 [[package]]
 name = "multiversion_no_op"
-version = "1.0.0"
+version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "743fb55ba31b18fb1ecef6bdc9aa2743314978ac084044301a7eee33fb99a20d"
 
