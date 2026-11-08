@@ -492,6 +492,8 @@ export default function Sidebar() {
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const renameInputRef = useRef<HTMLInputElement>(null);
+  // Guard to prevent double-commit when both onBlur and Enter fire in quick succession
+  const isCommittingRef = useRef(false);
 
   // Context menu state
   const [ctxMenu, setCtxMenu] = useState<ContextMenuState | null>(null);
@@ -780,7 +782,11 @@ export default function Sidebar() {
   }, [closeCtxMenu]);
 
   const commitRename = useCallback(async () => {
+    // Double-commit guard: onBlur + Enter can both fire before state settles
+    if (isCommittingRef.current) return;
     if (!renamingId) return;
+    isCommittingRef.current = true;
+
     const trimmed = renameValue.trim();
     if (trimmed) {
       // Determine if this is a collection or a request
@@ -789,27 +795,53 @@ export default function Sidebar() {
         const col = collections.find((c) => c.id === renamingId)!;
         await updateCollection(renamingId, trimmed, col.description, col.auth);
       } else {
-        // Find the request across all loaded collections
+        // Find the request in the loaded cache first; fall back to the currently
+        // open draft if the request's parent collection hasn't been expanded yet
+        // (requestsByCollection would be empty for it, causing a silent no-op).
+        let foundReq: Request | undefined;
         for (const [, reqs] of Object.entries(requestsByCollection)) {
-          const req = reqs.find((r) => r.id === renamingId);
-          if (req) {
-            await updateRequest(
-              req.id,
-              trimmed,
-              req.method,
-              req.url,
-              req.headers,
-              req.params,
-              req.body,
-              req.auth
-            );
-            break;
+          foundReq = reqs.find((r) => r.id === renamingId);
+          if (foundReq) break;
+        }
+        if (!foundReq && draft.id === renamingId) {
+          // Build a minimal Request from the current draft as fallback
+          foundReq = {
+            id: draft.id,
+            collection_id: draft.collection_id,
+            name: draft.name,
+            method: draft.method,
+            url: draft.url,
+            headers: draft.headers,
+            params: draft.params,
+            body: draft.body,
+            auth: draft.auth,
+            position: 0,
+            created_at: "",
+            updated_at: "",
+          };
+        }
+        if (foundReq) {
+          await updateRequest(
+            foundReq.id,
+            trimmed,
+            foundReq.method,
+            foundReq.url,
+            foundReq.headers,
+            foundReq.params,
+            foundReq.body,
+            foundReq.auth
+          );
+          // Sync the new name into the open draft so RequestBuilder's Save
+          // button doesn't silently revert the rename.
+          if (draft.id === renamingId) {
+            useRequestStore.getState().updateDraft({ name: trimmed });
           }
         }
       }
     }
     setRenamingId(null);
-  }, [renamingId, renameValue, collections, requestsByCollection, updateCollection, updateRequest]);
+    isCommittingRef.current = false;
+  }, [renamingId, renameValue, collections, requestsByCollection, draft, updateCollection, updateRequest]);
 
   const cancelRename = useCallback(() => setRenamingId(null), []);
 
