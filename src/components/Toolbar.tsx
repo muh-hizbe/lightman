@@ -8,6 +8,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useEnvStore } from "../stores/envStore";
 import { useSettingsStore, type Theme } from "../stores/settingsStore";
 import EnvironmentEditor from "./EnvironmentEditor";
+import AboutMenu from "./AboutMenu";
 
 interface ToolbarProps {
   sidebarOpen: boolean;
@@ -227,6 +228,9 @@ export default function Toolbar({ sidebarOpen, onToggleSidebar }: ToolbarProps) 
             </div>
           )}
         </div>
+
+        {/* About / version menu */}
+        <AboutMenu />
       </header>
 
       {/* Environment editor modal — rendered in the toolbar so it stays above all panels */}

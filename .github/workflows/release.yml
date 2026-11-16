@@ -41,16 +41,23 @@ jobs:
           sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget libssl-dev libayatana-appindicator3-dev librsvg2-dev
 
       - name: install frontend dependencies
-        run: npm install # Ganti pnpm/yarn jika menggunakan package manager lain
+        run: npm install
 
       - name: build tauri app
         uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Set TAURI_SIGNING_PRIVATE_KEY and TAURI_SIGNING_PRIVATE_KEY_PASSWORD
+          # as repository secrets to sign updater artifacts.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: __VERSION__
           releaseName: 'v__VERSION__'
           releaseBody: 'Lihat changelog untuk detail perubahan.'
           releaseDraft: true
           prerelease: false
+          # updaterJsonKeepUniversal keeps a single latest.json that works for
+          # all targets; tauri-action uploads it alongside each platform's assets.
+          updaterJsonKeepUniversal: true
           args: ${{ matrix.args }}

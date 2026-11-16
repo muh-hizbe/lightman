@@ -47,3 +47,7 @@ coverage/
 
 # Tauri generated schemas (also covered by src-tauri/.gitignore)
 src-tauri/gen/schemas/
+
+# Tauri updater signing keys — NEVER commit these
+*.key
+*.key.pub

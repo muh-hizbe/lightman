@@ -16,6 +16,11 @@
     "fs:allow-read-dir",
     "fs:allow-exists",
     "fs:scope-appdata",
-    "fs:scope-appdata-recursive"
+    "fs:scope-appdata-recursive",
+    "updater:default",
+    "updater:allow-check",
+    "updater:allow-download-and-install",
+    "process:default",
+    "process:allow-restart"
   ]
 }

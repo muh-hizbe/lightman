@@ -1,6 +1,6 @@
 [package]
 name = "lightman"
-version = "1.1.4"
+version = "1.1.5"
 description = "Lightman — A lightweight, privacy-first API client desktop application"
 authors = ["muh-hizbe"]
 edition = "2024"
@@ -22,6 +22,8 @@ tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-fs = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
 
 # Serialization
 serde = { version = "1", features = ["derive"] }

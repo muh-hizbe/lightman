@@ -32,6 +32,7 @@ use commands::sample::list_samples;
 use commands::saved_response::{
     save_response, list_saved_responses, rename_saved_response, delete_saved_response,
 };
+use commands::updater::{get_app_version, check_and_install_update};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -39,6 +40,8 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .setup(|app| {
             // Resolve the database path using Tauri 2's PathResolver:
             // <App Data Dir>/lightman.db
@@ -107,6 +110,9 @@ pub fn run() {
             list_saved_responses,
             rename_saved_response,
             delete_saved_response,
+            // Updater commands
+            get_app_version,
+            check_and_install_update,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
