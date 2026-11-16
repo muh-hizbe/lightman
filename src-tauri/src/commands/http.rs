@@ -107,10 +107,27 @@ pub async fn send_request(
     // -----------------------------------------------------------------------
     // 4. Merge headers + inject auth (Requirements 9.1–9.6)
     // -----------------------------------------------------------------------
+    // Interpolate the auth field on every ancestor collection so that
+    // {{variable}} placeholders in collection/folder auth (e.g. a bearer
+    // token stored as "{{TOKEN}}") are resolved before the header merger
+    // injects them into the outgoing request.
+    let interpolated_ancestors: Vec<crate::models::Collection> = ancestor_collections
+        .into_iter()
+        .map(|mut col| {
+            col.auth = VarInterpolatorService::interpolate_auth_config(
+                col.auth,
+                &env_vars,
+                &[],
+                &global_vars,
+            );
+            col
+        })
+        .collect();
+
     let merge_result = HeaderMergerService::merge(
         &interpolated,
         &collection_default_headers,
-        &ancestor_collections,
+        &interpolated_ancestors,
     );
 
     // Build the final request that will be sent, with merged headers applied.

@@ -30,6 +30,20 @@ use std::collections::HashMap;
 pub struct VarInterpolatorService;
 
 impl VarInterpolatorService {
+    /// Interpolate variable placeholders inside a standalone `AuthConfig`.
+    ///
+    /// Used to resolve inherited auth stored on ancestor collections before
+    /// the `HeaderMergerService` injects it into request headers.
+    pub fn interpolate_auth_config(
+        auth: crate::models::AuthConfig,
+        env_vars: &[Variable],
+        collection_vars: &[Variable],
+        global_vars: &[Variable],
+    ) -> crate::models::AuthConfig {
+        let lookup = build_lookup(env_vars, collection_vars, global_vars);
+        interpolate_auth(auth, &lookup)
+    }
+
     /// Interpolate all variable placeholders in `request` and return the
     /// resolved `Request`.  The original is consumed to avoid unnecessary
     /// cloning at call sites.
