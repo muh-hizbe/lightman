@@ -145,6 +145,7 @@ export interface HttpResponse {
   body: string;
   response_time_ms: number;
   response_size_bytes: number;
+  request_url: string;
 }
 
 // ---------------------------------------------------------------------------

@@ -1611,6 +1611,27 @@ html.dark .json-null    { color: #6b7280; }
   text-align: center;
 }
 
+/* Request URL meta row */
+.response-headers-table__row--meta {
+  background: var(--color-surface-raised);
+  border-bottom: 2px solid var(--color-border-subtle);
+}
+
+.response-headers-table__row--meta:hover {
+  background: var(--color-surface-raised);
+}
+
+.response-headers-table__key--meta {
+  color: var(--color-text-muted);
+  font-style: italic;
+  font-weight: 600;
+}
+
+.response-headers-table__value--meta {
+  color: var(--color-text);
+  word-break: break-all;
+}
+
 /* =========================================================================
    Task 18 â€” Collections Sidebar (tree view + CRUD UI)
    ========================================================================= */

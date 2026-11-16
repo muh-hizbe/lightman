@@ -201,6 +201,7 @@ export const useRequestStore = create<RequestState>((set, get) => ({
       body: entry.response_body,
       response_time_ms: entry.response_time_ms,
       response_size_bytes: entry.response_size_bytes,
+      request_url: entry.request.url,
     };
 
     // Cache the reconstructed response under the request id so it persists

@@ -123,6 +123,9 @@ impl HttpExecutorService {
             .unwrap_or("Unknown")
             .to_string();
 
+        // Capture the final URL (after any redirects) before consuming the response.
+        let final_url = response.url().to_string();
+
         // Collect response headers
         let response_headers: Vec<Header> = response
             .headers()
@@ -155,6 +158,7 @@ impl HttpExecutorService {
             body,
             response_time_ms: elapsed_ms,
             response_size_bytes,
+            request_url: final_url,
         })
     }
 }

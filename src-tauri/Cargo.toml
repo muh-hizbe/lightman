@@ -1,9 +1,9 @@
 [package]
 name = "lightman"
-version = "1.0.5"
+version = "1.1.2"
 description = "Lightman — A lightweight, privacy-first API client desktop application"
-authors = ["you"]
-edition = "2024"
+authors = ["muh-hizbe"]
+edition = "2026"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

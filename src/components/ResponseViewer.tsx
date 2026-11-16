@@ -220,7 +220,7 @@ export default function ResponseViewer({ style }: { style?: React.CSSProperties 
                 id="tabpanel-headers"
                 aria-labelledby="tab-headers"
               >
-                <ResponseHeadersTable headers={response.headers} />
+                <ResponseHeadersTable headers={response.headers} requestUrl={response.request_url} />
               </div>
             )}
           </>
@@ -310,8 +310,7 @@ function SavedResponsesList({ requestId }: { requestId: string }) {
             {selectedTab === "pretty" && <PrettyBody body={selected.body} />}
             {selectedTab === "raw" && <RawBody body={selected.body} />}
             {selectedTab === "headers" && <ResponseHeadersTable headers={selected.headers} />}
-          </div>
-        </div>
+          </div>        </div>
       )}
 
       {/* Prompt when nothing selected */}
@@ -657,11 +656,7 @@ function JsonNode({ value, depth, isLast, propKey }: JsonNodeProps) {
 // 17.3 – Response headers table
 // ---------------------------------------------------------------------------
 
-function ResponseHeadersTable({ headers }: { headers: Header[] }) {
-  if (headers.length === 0) {
-    return <p className="response-headers-empty">No response headers.</p>;
-  }
-
+function ResponseHeadersTable({ headers, requestUrl }: { headers: Header[]; requestUrl?: string }) {
   return (
     <table className="response-headers-table" aria-label="Response headers">
       <thead>
@@ -671,12 +666,24 @@ function ResponseHeadersTable({ headers }: { headers: Header[] }) {
         </tr>
       </thead>
       <tbody>
-        {headers.map((h, i) => (
-          <tr key={i} className="response-headers-table__row">
-            <td className="response-headers-table__key">{h.key}</td>
-            <td className="response-headers-table__value">{h.value}</td>
+        {requestUrl && (
+          <tr className="response-headers-table__row response-headers-table__row--meta">
+            <td className="response-headers-table__key response-headers-table__key--meta">Request URL</td>
+            <td className="response-headers-table__value response-headers-table__value--meta">{requestUrl}</td>
           </tr>
-        ))}
+        )}
+        {headers.length === 0 && !requestUrl ? (
+          <tr>
+            <td colSpan={2} className="response-headers-empty">No response headers.</td>
+          </tr>
+        ) : (
+          headers.map((h, i) => (
+            <tr key={i} className="response-headers-table__row">
+              <td className="response-headers-table__key">{h.key}</td>
+              <td className="response-headers-table__value">{h.value}</td>
+            </tr>
+          ))
+        )}
       </tbody>
     </table>
   );

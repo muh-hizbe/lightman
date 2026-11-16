@@ -296,6 +296,7 @@ mod tests {
             body: r#"{"result":"ok"}"#.to_string(),
             response_time_ms: 42,
             response_size_bytes: 15,
+            request_url: "https://example.com".to_string(),
         }
     }
 

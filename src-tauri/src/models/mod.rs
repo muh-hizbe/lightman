@@ -262,6 +262,8 @@ pub struct HttpResponse {
     pub response_time_ms: u64,
     /// Size of the response body in bytes.
     pub response_size_bytes: u64,
+    /// The final URL that was requested (after query-param expansion).
+    pub request_url: String,
 }
 
 // ---------------------------------------------------------------------------
@@ -598,6 +600,7 @@ mod tests {
             body: r#"{"id":1}"#.to_string(),
             response_time_ms: 42,
             response_size_bytes: 8,
+            request_url: "https://example.com/api".to_string(),
         };
         let json = serde_json::to_string(&resp).unwrap();
         let decoded: HttpResponse = serde_json::from_str(&json).unwrap();
