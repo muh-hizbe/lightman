@@ -25,6 +25,7 @@ import type { AuthConfig, Collection, HttpMethod, Request } from "../types";
 import { DEFAULT_AUTH, DEFAULT_BODY } from "../types";
 import { exportCollection, importCollection } from "../api/importExport";
 import ConfirmDialog from "./ConfirmDialog";
+import { useValidVariableSet, VarHighlightFormInput } from "./VarHighlight";
 
 // ---------------------------------------------------------------------------
 // HTTP method badge colours
@@ -274,6 +275,7 @@ function CollectionAuthModal({ collection, onSave, onClose }: CollectionAuthModa
   const [auth, setAuth] = useState<AuthConfig>(collection.auth);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const validKeys = useValidVariableSet();
 
   const authTypes: { id: AuthConfig["type"]; label: string }[] = [
     ...(isFolder ? [{ id: "inherit" as const, label: "Inherit" }] : []),
@@ -367,17 +369,26 @@ function CollectionAuthModal({ collection, onSave, onClose }: CollectionAuthModa
               <div className="auth-editor__grid">
                 <div className="form-group">
                   <label htmlFor="col-auth-username" className="form-label">Username</label>
-                  <input id="col-auth-username" className="input" type="text"
+                  <VarHighlightFormInput
+                    id="col-auth-username"
                     value={auth.username}
-                    onChange={(e) => setAuth({ type: "basic_auth", username: e.target.value, password: auth.password })}
-                    placeholder="username" autoComplete="off" />
+                    onChange={(v) => setAuth({ type: "basic_auth", username: v, password: auth.password })}
+                    placeholder="username"
+                    ariaLabel="Username"
+                    validKeys={validKeys}
+                  />
                 </div>
                 <div className="form-group">
                   <label htmlFor="col-auth-password" className="form-label">Password</label>
-                  <input id="col-auth-password" className="input" type="password"
+                  <VarHighlightFormInput
+                    id="col-auth-password"
                     value={auth.password}
-                    onChange={(e) => setAuth({ type: "basic_auth", username: auth.username, password: e.target.value })}
-                    placeholder="password" autoComplete="new-password" />
+                    onChange={(v) => setAuth({ type: "basic_auth", username: auth.username, password: v })}
+                    placeholder="password"
+                    ariaLabel="Password"
+                    validKeys={validKeys}
+                    inputType="password"
+                  />
                 </div>
                 <p className="auth-editor__note">
                   Sent as <code>Authorization: Basic …</code> for requests that inherit this auth.
@@ -387,10 +398,14 @@ function CollectionAuthModal({ collection, onSave, onClose }: CollectionAuthModa
             {auth.type === "bearer_token" && (
               <div className="form-group" style={{ maxWidth: 480 }}>
                 <label htmlFor="col-auth-token" className="form-label">Token</label>
-                <input id="col-auth-token" className="input" type="text"
+                <VarHighlightFormInput
+                  id="col-auth-token"
                   value={auth.token}
-                  onChange={(e) => setAuth({ type: "bearer_token", token: e.target.value })}
-                  placeholder="your-token-here" autoComplete="off" />
+                  onChange={(v) => setAuth({ type: "bearer_token", token: v })}
+                  placeholder="your-token-here"
+                  ariaLabel="Bearer token"
+                  validKeys={validKeys}
+                />
                 <p className="auth-editor__note" style={{ marginTop: 6 }}>
                   Sent as <code>Authorization: Bearer &lt;token&gt;</code>.
                 </p>
@@ -400,17 +415,25 @@ function CollectionAuthModal({ collection, onSave, onClose }: CollectionAuthModa
               <div className="auth-editor__grid">
                 <div className="form-group">
                   <label htmlFor="col-api-key-name" className="form-label">Key name</label>
-                  <input id="col-api-key-name" className="input" type="text"
+                  <VarHighlightFormInput
+                    id="col-api-key-name"
                     value={auth.key}
-                    onChange={(e) => setAuth({ type: "api_key", key: e.target.value, value: auth.value, location: auth.location })}
-                    placeholder="X-API-Key" autoComplete="off" />
+                    onChange={(v) => setAuth({ type: "api_key", key: v, value: auth.value, location: auth.location })}
+                    placeholder="X-API-Key"
+                    ariaLabel="API key name"
+                    validKeys={validKeys}
+                  />
                 </div>
                 <div className="form-group">
                   <label htmlFor="col-api-key-value" className="form-label">Value</label>
-                  <input id="col-api-key-value" className="input" type="text"
+                  <VarHighlightFormInput
+                    id="col-api-key-value"
                     value={auth.value}
-                    onChange={(e) => setAuth({ type: "api_key", key: auth.key, value: e.target.value, location: auth.location })}
-                    placeholder="your-api-key" autoComplete="off" />
+                    onChange={(v) => setAuth({ type: "api_key", key: auth.key, value: v, location: auth.location })}
+                    placeholder="your-api-key"
+                    ariaLabel="API key value"
+                    validKeys={validKeys}
+                  />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Add to</label>

@@ -4,7 +4,7 @@
 //
 // Requirements: 1.1, 1.3, 3.4, 9.1
 
-import { useState, useRef, useCallback, useMemo, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useRequestStore, extractPathParams, parseQueryString, replaceQueryString } from "../stores/requestStore";
 import { useEnvStore } from "../stores/envStore";
 import { useCollectionStore } from "../stores/collectionStore";
@@ -16,6 +16,7 @@ import {
   type MultipartField,
   type ApiKeyLocation,
 } from "../types";
+import { VarHighlightFormInput } from "./VarHighlight";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -24,28 +25,10 @@ import {
 type TabId = "headers" | "params" | "body" | "auth";
 
 // ---------------------------------------------------------------------------
-// useValidVariableSet — derives the set of valid variable keys from envStore.
-// A key is "valid" if it exists in globalVariables OR in the active
-// environment's variables, and is enabled.
+// useValidVariableSet — re-exported from VarHighlight (shared with Sidebar).
 // ---------------------------------------------------------------------------
 
-function useValidVariableSet(): Set<string> {
-  const { activeEnvironmentId, variablesByEnv, globalVariables } = useEnvStore();
-
-  return useMemo(() => {
-    const keys = new Set<string>();
-    for (const v of globalVariables) {
-      if (v.enabled) keys.add(v.key);
-    }
-    if (activeEnvironmentId) {
-      const envVars = variablesByEnv[activeEnvironmentId] ?? [];
-      for (const v of envVars) {
-        if (v.enabled) keys.add(v.key);
-      }
-    }
-    return keys;
-  }, [activeEnvironmentId, variablesByEnv, globalVariables]);
-}
+import { useValidVariableSet } from "./VarHighlight";
 
 // ---------------------------------------------------------------------------
 // buildJsonHighlightedHtml — tokenises JSON and wraps each token in a
@@ -906,11 +889,13 @@ function AuthEditor({
   auth,
   onChange,
   showInherit = false,
+  validKeys,
 }: {
   auth: AuthConfig;
   onChange: (auth: AuthConfig) => void;
   /** When true, show the "Inherit" option (for requests/folders; hide for top-level collections). */
   showInherit?: boolean;
+  validKeys: Set<string>;
 }) {
   const authTypes = [
     ...(showInherit ? [{ id: "inherit" as const, label: "Inherit" }] : []),
@@ -984,32 +969,31 @@ function AuthEditor({
               <label htmlFor="auth-username" className="form-label">
                 Username
               </label>
-              <input
+              <VarHighlightFormInput
                 id="auth-username"
-                className="input"
-                type="text"
                 value={auth.username}
-                onChange={(e) =>
-                  onChange({ type: "basic_auth", username: e.target.value, password: auth.password })
+                onChange={(v) =>
+                  onChange({ type: "basic_auth", username: v, password: auth.password })
                 }
                 placeholder="username"
-                autoComplete="off"
+                ariaLabel="Username"
+                validKeys={validKeys}
               />
             </div>
             <div className="form-group">
               <label htmlFor="auth-password" className="form-label">
                 Password
               </label>
-              <input
+              <VarHighlightFormInput
                 id="auth-password"
-                className="input"
-                type="password"
                 value={auth.password}
-                onChange={(e) =>
-                  onChange({ type: "basic_auth", username: auth.username, password: e.target.value })
+                onChange={(v) =>
+                  onChange({ type: "basic_auth", username: auth.username, password: v })
                 }
                 placeholder="password"
-                autoComplete="new-password"
+                ariaLabel="Password"
+                validKeys={validKeys}
+                inputType="password"
               />
             </div>
             <p className="auth-editor__note">
@@ -1024,14 +1008,13 @@ function AuthEditor({
             <label htmlFor="auth-token" className="form-label">
               Token
             </label>
-            <input
+            <VarHighlightFormInput
               id="auth-token"
-              className="input"
-              type="text"
               value={auth.token}
-              onChange={(e) => onChange({ type: "bearer_token", token: e.target.value })}
+              onChange={(v) => onChange({ type: "bearer_token", token: v })}
               placeholder="your-token-here"
-              autoComplete="off"
+              ariaLabel="Bearer token"
+              validKeys={validKeys}
             />
             <p className="auth-editor__note" style={{ marginTop: 6 }}>
               Sent as <code>Authorization: Bearer &lt;token&gt;</code>.
@@ -1045,32 +1028,30 @@ function AuthEditor({
               <label htmlFor="api-key-name" className="form-label">
                 Key name
               </label>
-              <input
+              <VarHighlightFormInput
                 id="api-key-name"
-                className="input"
-                type="text"
                 value={auth.key}
-                onChange={(e) =>
-                  onChange({ type: "api_key", key: e.target.value, value: auth.value, location: auth.location })
+                onChange={(v) =>
+                  onChange({ type: "api_key", key: v, value: auth.value, location: auth.location })
                 }
                 placeholder="X-API-Key"
-                autoComplete="off"
+                ariaLabel="API key name"
+                validKeys={validKeys}
               />
             </div>
             <div className="form-group">
               <label htmlFor="api-key-value" className="form-label">
                 Value
               </label>
-              <input
+              <VarHighlightFormInput
                 id="api-key-value"
-                className="input"
-                type="text"
                 value={auth.value}
-                onChange={(e) =>
-                  onChange({ type: "api_key", key: auth.key, value: e.target.value, location: auth.location })
+                onChange={(v) =>
+                  onChange({ type: "api_key", key: auth.key, value: v, location: auth.location })
                 }
                 placeholder="your-api-key"
-                autoComplete="off"
+                ariaLabel="API key value"
+                validKeys={validKeys}
               />
             </div>
             <div className="form-group">
@@ -1424,6 +1405,7 @@ export default function RequestBuilder() {
             auth={draft.auth}
             onChange={(auth) => updateDraft({ auth })}
             showInherit={true}
+            validKeys={validKeys}
           />
         )}
       </div>
