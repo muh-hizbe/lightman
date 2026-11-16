@@ -108,6 +108,12 @@ interface RequestState {
    * Persists responses across navigation for the lifetime of the app session.
    */
   responseCache: Record<string, HttpResponse>;
+  /**
+   * In-memory cache of path param values keyed by request id.
+   * Path params are frontend-only (not persisted to DB), so we cache them
+   * here so values survive navigation between requests.
+   */
+  pathParamCache: Record<string, PathParam[]>;
 
   // ---------------------------------------------------------------------------
   // Actions
@@ -157,11 +163,14 @@ export const useRequestStore = create<RequestState>((set, get) => ({
   sending: false,
   sendError: null,
   responseCache: {},
+  pathParamCache: {},
 
   loadRequest: (request) => {
     const pathParamNames = extractPathParams(request.url);
-    // Restore cached response for this request, if any
+    // Restore cached response and path param values for this request, if any
     const cachedResponse = request.id ? (get().responseCache[request.id] ?? null) : null;
+    const cachedPathParams = request.id ? (get().pathParamCache[request.id] ?? []) : [];
+    const prevMap = new Map(cachedPathParams.map((p) => [p.name, p.value]));
     set({
       draft: {
         id: request.id,
@@ -171,7 +180,7 @@ export const useRequestStore = create<RequestState>((set, get) => ({
         url: request.url,
         headers: request.headers,
         params: request.params,
-        pathParams: pathParamNames.map((name) => ({ name, value: "" })),
+        pathParams: pathParamNames.map((name) => ({ name, value: prevMap.get(name) ?? "" })),
         body: request.body,
         auth: request.auth,
       },
@@ -227,7 +236,18 @@ export const useRequestStore = create<RequestState>((set, get) => ({
   },
 
   updateDraft: (patch) => {
-    set((s) => ({ draft: { ...s.draft, ...patch } }));
+    set((s) => {
+      const next = { ...s.draft, ...patch };
+      // If path params were updated and the draft has a saved id, persist
+      // the values in pathParamCache so they survive navigation.
+      if (patch.pathParams !== undefined && next.id) {
+        return {
+          draft: next,
+          pathParamCache: { ...s.pathParamCache, [next.id]: next.pathParams },
+        };
+      }
+      return { draft: next };
+    });
   },
 
   sendDraftRequest: async (environmentId) => {
