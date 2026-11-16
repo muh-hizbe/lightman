@@ -1,5 +1,14 @@
 # Lightman
 
+[![GitHub Release](https://img.shields.io/github/v/release/muh-hizbe/lightman?style=flat-square&color=blue)](https://github.com/muh-hizbe/lightman/releases/latest)
+[![GitHub Stars](https://img.shields.io/github/stars/muh-hizbe/lightman?style=flat-square&color=yellow)](https://github.com/muh-hizbe/lightman/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/muh-hizbe/lightman?style=flat-square&color=orange)](https://github.com/muh-hizbe/lightman/forks)
+[![GitHub Issues](https://img.shields.io/github/issues/muh-hizbe/lightman?style=flat-square&color=red)](https://github.com/muh-hizbe/lightman/issues)
+[![GitHub License](https://img.shields.io/github/license/muh-hizbe/lightman?style=flat-square)](https://github.com/muh-hizbe/lightman/blob/main/LICENSE)
+[![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-24C8DB?style=flat-square&logo=tauri)](https://v2.tauri.app/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react)](https://react.dev/)
+[![Rust](https://img.shields.io/badge/Rust-stable-CE422B?style=flat-square&logo=rust)](https://www.rust-lang.org/)
+
 **Lightman** adalah HTTP client desktop yang ringan dan mengutamakan privasi. Dibangun dengan Rust sebagai backend (melalui Tauri 2) dan React 19 + TypeScript sebagai frontend, Lightman memungkinkan Anda mengirim dan menguji permintaan HTTP, mengelola koleksi request, environment variables, serta menyimpan riwayat respons — semuanya secara lokal tanpa mengirim data ke server pihak ketiga.
 
 ---
@@ -60,7 +69,7 @@ Referensi lengkap: [Tauri Prerequisites](https://v2.tauri.app/start/prerequisite
 Clone repo dan install dependensi frontend:
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/muh-hizbe/lightman.git
 cd lightman
 npm install
 ```
