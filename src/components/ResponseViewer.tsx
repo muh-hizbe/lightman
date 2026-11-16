@@ -220,7 +220,11 @@ export default function ResponseViewer({ style }: { style?: React.CSSProperties 
                 id="tabpanel-headers"
                 aria-labelledby="tab-headers"
               >
-                <ResponseHeadersTable headers={response.headers} requestUrl={response.request_url} />
+                <ResponseHeadersTable
+                  headers={response.headers}
+                  requestHeaders={response.request_headers}
+                  requestUrl={response.request_url}
+                />
               </div>
             )}
           </>
@@ -656,36 +660,83 @@ function JsonNode({ value, depth, isLast, propKey }: JsonNodeProps) {
 // 17.3 – Response headers table
 // ---------------------------------------------------------------------------
 
-function ResponseHeadersTable({ headers, requestUrl }: { headers: Header[]; requestUrl?: string }) {
+function ResponseHeadersTable({
+  headers,
+  requestHeaders,
+  requestUrl,
+}: {
+  headers: Header[];
+  requestHeaders?: Header[];
+  requestUrl?: string;
+}) {
   return (
-    <table className="response-headers-table" aria-label="Response headers">
-      <thead>
-        <tr>
-          <th scope="col" className="response-headers-table__th">Header</th>
-          <th scope="col" className="response-headers-table__th">Value</th>
-        </tr>
-      </thead>
-      <tbody>
-        {requestUrl && (
-          <tr className="response-headers-table__row response-headers-table__row--meta">
-            <td className="response-headers-table__key response-headers-table__key--meta">Request URL</td>
-            <td className="response-headers-table__value response-headers-table__value--meta">{requestUrl}</td>
-          </tr>
-        )}
-        {headers.length === 0 && !requestUrl ? (
-          <tr>
-            <td colSpan={2} className="response-headers-empty">No response headers.</td>
-          </tr>
-        ) : (
-          headers.map((h, i) => (
-            <tr key={i} className="response-headers-table__row">
-              <td className="response-headers-table__key">{h.key}</td>
-              <td className="response-headers-table__value">{h.value}</td>
+    <div>
+      {/* ── Request section ───────────────────────────────────────────── */}
+      {(requestUrl || (requestHeaders && requestHeaders.length > 0)) && (
+        <table className="response-headers-table" aria-label="Request details">
+          <thead>
+            <tr>
+              <th colSpan={2} scope="colgroup" className="response-headers-table__section-label">
+                Request
+              </th>
             </tr>
-          ))
-        )}
-      </tbody>
-    </table>
+            <tr>
+              <th scope="col" className="response-headers-table__th">Header</th>
+              <th scope="col" className="response-headers-table__th">Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            {requestUrl && (
+              <tr className="response-headers-table__row response-headers-table__row--meta">
+                <td className="response-headers-table__key response-headers-table__key--meta">Request URL</td>
+                <td className="response-headers-table__value response-headers-table__value--meta">{requestUrl}</td>
+              </tr>
+            )}
+            {requestHeaders && requestHeaders.length > 0 ? (
+              requestHeaders.map((h, i) => (
+                <tr key={i} className="response-headers-table__row">
+                  <td className="response-headers-table__key">{h.key}</td>
+                  <td className="response-headers-table__value">{h.value}</td>
+                </tr>
+              ))
+            ) : requestUrl ? (
+              <tr>
+                <td colSpan={2} className="response-headers-empty">No request headers sent.</td>
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
+      )}
+
+      {/* ── Response section ──────────────────────────────────────────── */}
+      <table className="response-headers-table" aria-label="Response headers">
+        <thead>
+          <tr>
+            <th colSpan={2} scope="colgroup" className="response-headers-table__section-label">
+              Response
+            </th>
+          </tr>
+          <tr>
+            <th scope="col" className="response-headers-table__th">Header</th>
+            <th scope="col" className="response-headers-table__th">Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          {headers.length === 0 ? (
+            <tr>
+              <td colSpan={2} className="response-headers-empty">No response headers.</td>
+            </tr>
+          ) : (
+            headers.map((h, i) => (
+              <tr key={i} className="response-headers-table__row">
+                <td className="response-headers-table__key">{h.key}</td>
+                <td className="response-headers-table__value">{h.value}</td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

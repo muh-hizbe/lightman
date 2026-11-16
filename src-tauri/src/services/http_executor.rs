@@ -48,6 +48,9 @@ impl HttpExecutorService {
     /// 4. Attach the request body.
     /// 5. Send the request, measuring round-trip time.
     /// 6. Collect status, headers, body and size into [`HttpResponse`].
+    ///    Also echoes back the outgoing request headers so the frontend can
+    ///    display them in the response panel (useful for debugging auth and
+    ///    variable interpolation).
     pub async fn execute(&self, request: &Request) -> Result<HttpResponse, String> {
         // ---------------------------------------------------------------
         // 1. Route to the correct reqwest method (Requirement 1.1)
@@ -83,7 +86,14 @@ impl HttpExecutorService {
         // 3. Attach enabled request headers
         // ---------------------------------------------------------------
         let mut header_map = HeaderMap::new();
-        for header in request.headers.iter().filter(|h| h.enabled) {
+        // Collect only enabled headers for both the outgoing map and the echo list.
+        let sent_headers: Vec<Header> = request
+            .headers
+            .iter()
+            .filter(|h| h.enabled)
+            .cloned()
+            .collect();
+        for header in &sent_headers {
             match (
                 HeaderName::from_bytes(header.key.as_bytes()),
                 HeaderValue::from_str(&header.value),
@@ -155,6 +165,7 @@ impl HttpExecutorService {
             status_code,
             status_text,
             headers: response_headers,
+            request_headers: sent_headers,
             body,
             response_time_ms: elapsed_ms,
             response_size_bytes,

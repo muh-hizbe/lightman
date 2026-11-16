@@ -256,6 +256,9 @@ pub struct HttpResponse {
     pub status_text: String,
     /// Response headers as key-value pairs.
     pub headers: Vec<Header>,
+    /// Request headers actually sent (after merging collection defaults, auth
+    /// injection and variable interpolation).
+    pub request_headers: Vec<Header>,
     /// Response body as a UTF-8 string (binary responses are base64-encoded).
     pub body: String,
     /// Total round-trip time in milliseconds.
@@ -595,6 +598,11 @@ mod tests {
             headers: vec![Header {
                 key: "Content-Type".to_string(),
                 value: "application/json".to_string(),
+                enabled: true,
+            }],
+            request_headers: vec![Header {
+                key: "Authorization".to_string(),
+                value: "Bearer tok".to_string(),
                 enabled: true,
             }],
             body: r#"{"id":1}"#.to_string(),

@@ -62,6 +62,9 @@ impl VarInterpolatorService {
         // --- Body ---
         request.body = interpolate_body(request.body, &lookup);
 
+        // --- Auth ---
+        request.auth = interpolate_auth(request.auth, &lookup);
+
         request
     }
 }
@@ -167,6 +170,27 @@ fn interpolate_fields(
         }
     }
     fields
+}
+
+/// Interpolate variable placeholders inside an `AuthConfig`.
+fn interpolate_auth(auth: crate::models::AuthConfig, lookup: &HashMap<&str, &str>) -> crate::models::AuthConfig {
+    use crate::models::AuthConfig;
+    match auth {
+        AuthConfig::BasicAuth { username, password } => AuthConfig::BasicAuth {
+            username: replace_placeholders(&username, lookup),
+            password: replace_placeholders(&password, lookup),
+        },
+        AuthConfig::BearerToken { token } => AuthConfig::BearerToken {
+            token: replace_placeholders(&token, lookup),
+        },
+        AuthConfig::ApiKey { key, value, location } => AuthConfig::ApiKey {
+            key: replace_placeholders(&key, lookup),
+            value: replace_placeholders(&value, lookup),
+            location,
+        },
+        // None and Inherit carry no interpolatable text fields.
+        other => other,
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -456,5 +480,79 @@ mod tests {
         let req = base_request("https://{{MISSING_HOST}}/api");
         let out = VarInterpolatorService::interpolate(req, &[], &[], &[]);
         assert_eq!(out.url, "https://{{MISSING_HOST}}/api");
+    }
+
+    // --- Auth interpolation ---
+
+    #[test]
+    fn interpolate_bearer_token() {
+        let env = vec![make_var("TOKEN", "secret-token-abc", true)];
+        let mut req = base_request("https://example.com");
+        req.auth = crate::models::AuthConfig::BearerToken {
+            token: "{{TOKEN}}".to_string(),
+        };
+        let out = VarInterpolatorService::interpolate(req, &env, &[], &[]);
+        assert_eq!(
+            out.auth,
+            crate::models::AuthConfig::BearerToken {
+                token: "secret-token-abc".to_string()
+            }
+        );
+    }
+
+    #[test]
+    fn interpolate_basic_auth_username_and_password() {
+        let env = vec![
+            make_var("USER", "alice", true),
+            make_var("PASS", "hunter2", true),
+        ];
+        let mut req = base_request("https://example.com");
+        req.auth = crate::models::AuthConfig::BasicAuth {
+            username: "{{USER}}".to_string(),
+            password: "{{PASS}}".to_string(),
+        };
+        let out = VarInterpolatorService::interpolate(req, &env, &[], &[]);
+        assert_eq!(
+            out.auth,
+            crate::models::AuthConfig::BasicAuth {
+                username: "alice".to_string(),
+                password: "hunter2".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn interpolate_api_key_value() {
+        let env = vec![make_var("API_KEY", "my-key-xyz", true)];
+        let mut req = base_request("https://example.com");
+        req.auth = crate::models::AuthConfig::ApiKey {
+            key: "X-Api-Key".to_string(),
+            value: "{{API_KEY}}".to_string(),
+            location: crate::models::ApiKeyLocation::Header,
+        };
+        let out = VarInterpolatorService::interpolate(req, &env, &[], &[]);
+        assert_eq!(
+            out.auth,
+            crate::models::AuthConfig::ApiKey {
+                key: "X-Api-Key".to_string(),
+                value: "my-key-xyz".to_string(),
+                location: crate::models::ApiKeyLocation::Header,
+            }
+        );
+    }
+
+    #[test]
+    fn auth_none_and_inherit_not_modified() {
+        let env = vec![make_var("TOKEN", "tok", true)];
+
+        let mut req_none = base_request("https://example.com");
+        req_none.auth = crate::models::AuthConfig::None;
+        let out_none = VarInterpolatorService::interpolate(req_none, &env, &[], &[]);
+        assert_eq!(out_none.auth, crate::models::AuthConfig::None);
+
+        let mut req_inherit = base_request("https://example.com");
+        req_inherit.auth = crate::models::AuthConfig::Inherit;
+        let out_inherit = VarInterpolatorService::interpolate(req_inherit, &env, &[], &[]);
+        assert_eq!(out_inherit.auth, crate::models::AuthConfig::Inherit);
     }
 }

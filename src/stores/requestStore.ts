@@ -198,6 +198,7 @@ export const useRequestStore = create<RequestState>((set, get) => ({
       status_code: entry.status_code,
       status_text: entry.status_text,
       headers: entry.response_headers,
+      request_headers: entry.request.headers.filter(h => h.enabled),
       body: entry.response_body,
       response_time_ms: entry.response_time_ms,
       response_size_bytes: entry.response_size_bytes,

@@ -142,6 +142,9 @@ export interface HttpResponse {
   status_code: number;
   status_text: string;
   headers: Header[];
+  /** Request headers actually sent (after merging collection defaults, auth
+   *  injection and variable interpolation). Useful for debugging. */
+  request_headers: Header[];
   body: string;
   response_time_ms: number;
   response_size_bytes: number;

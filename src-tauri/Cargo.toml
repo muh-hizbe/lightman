@@ -1,6 +1,6 @@
 [package]
 name = "lightman"
-version = "1.1.3"
+version = "1.1.4"
 description = "Lightman — A lightweight, privacy-first API client desktop application"
 authors = ["muh-hizbe"]
 edition = "2024"

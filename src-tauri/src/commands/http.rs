@@ -293,6 +293,7 @@ mod tests {
                 value: "application/json".to_string(),
                 enabled: true,
             }],
+            request_headers: vec![],
             body: r#"{"result":"ok"}"#.to_string(),
             response_time_ms: 42,
             response_size_bytes: 15,
