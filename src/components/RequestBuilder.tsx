@@ -1,6 +1,6 @@
 // Request builder panel — full implementation (task 16).
 // - 16.1: URL bar with method selector and {{var}} variable highlighting
-// - 16.2: Tab panels: Headers, Params, Body, Auth
+// - 16.2: Tab panels: Headers, Params, Body, Auth, Code
 //
 // Requirements: 1.1, 1.3, 3.4, 9.1
 
@@ -17,12 +17,13 @@ import {
   type ApiKeyLocation,
 } from "../types";
 import { VarHighlightFormInput } from "./VarHighlight";
+import CodePreview from "./CodePreview";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-type TabId = "headers" | "params" | "body" | "auth";
+type TabId = "headers" | "params" | "body" | "auth" | "code";
 
 // ---------------------------------------------------------------------------
 // useValidVariableSet — re-exported from VarHighlight (shared with Sidebar).
@@ -1098,6 +1099,7 @@ function TabBar({
     { id: "headers", label: "Headers", badge: headerCount || undefined },
     { id: "body", label: "Body" },
     { id: "auth", label: "Auth" },
+    { id: "code", label: "Code" },
   ];
 
   return (
@@ -1407,6 +1409,11 @@ export default function RequestBuilder() {
             showInherit={true}
             validKeys={validKeys}
           />
+        )}
+
+        {/* Code tab */}
+        {activeTab === "code" && (
+          <CodePreview draft={draft} />
         )}
       </div>
     </div>

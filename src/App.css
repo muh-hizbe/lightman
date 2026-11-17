@@ -3037,3 +3037,96 @@ html.dark .sidebar-notification--error {
 @keyframes about-spinner {
   to { transform: rotate(360deg); }
 }
+
+/* ---------------------------------------------------------------------------
+   Code Preview — snippet generator (cURL / fetch / axios)
+   --------------------------------------------------------------------------- */
+
+.code-preview {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.code-preview__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border-subtle);
+  flex-shrink: 0;
+  gap: var(--space-2);
+}
+
+.code-preview__langs {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.code-preview__lang-btn {
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.code-preview__lang-btn--active {
+  background: var(--color-accent);
+  color: #fff;
+  border-color: transparent;
+}
+
+.code-preview__lang-btn--active:hover {
+  background: var(--color-accent-hover);
+}
+
+.code-preview__copy {
+  font-size: 12px;
+  padding: 3px 10px;
+  margin-left: auto;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.code-preview__pre {
+  flex: 1;
+  overflow: auto;
+  margin: 0;
+  padding: var(--space-4);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.65;
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  border: none;
+  white-space: pre;
+  tab-size: 2;
+}
+
+/* Syntax token colours — light mode */
+.cp-keyword  { color: #7c3aed; font-weight: 600; }
+.cp-string   { color: #0d7a3e; }
+.cp-number   { color: #c05621; }
+.cp-comment  { color: var(--color-text-muted); font-style: italic; }
+.cp-punct    { color: var(--color-text-muted); }
+.cp-flag     { color: #0369a1; font-weight: 500; }
+
+/* Dark mode overrides */
+@media (prefers-color-scheme: dark) {
+  html:not(.light) {
+    .cp-keyword { color: #c084fc; }
+    .cp-string  { color: #4ade80; }
+    .cp-number  { color: #fb923c; }
+    .cp-flag    { color: #38bdf8; }
+  }
+}
+html.dark {
+  .cp-keyword { color: #c084fc; }
+  .cp-string  { color: #4ade80; }
+  .cp-number  { color: #fb923c; }
+  .cp-flag    { color: #38bdf8; }
+}
