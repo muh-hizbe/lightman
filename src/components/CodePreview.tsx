@@ -4,8 +4,9 @@
 import { useState, useMemo } from "react";
 import type { DraftRequest } from "../stores/requestStore";
 import { substitutePathParams } from "../stores/requestStore";
-import type { RequestBody } from "../types";
+import type { AuthConfig, RequestBody } from "../types";
 import { useEnvStore } from "../stores/envStore";
+import { useCollectionStore } from "../stores/collectionStore";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -56,23 +57,40 @@ function buildUrl(draft: DraftRequest, varMap: Map<string, string>): string {
 
 /**
  * Collect every header the request will send, with values interpolated:
- * - explicit enabled headers from the draft
+ * - collection default_headers (already resolved from inherit chain)
+ * - explicit enabled headers from the draft (override defaults with same key)
  * - Content-Type derived from the body type
- * - Authorization / API key headers from auth config
+ * - Authorization / API key headers from resolvedAuth
  */
 function collectHeaders(
   draft: DraftRequest,
   varMap: Map<string, string>,
+  resolvedAuth: AuthConfig,
+  collectionDefaultHeaders: { key: string; value: string; enabled: boolean }[],
 ): { key: string; value: string }[] {
   const result: { key: string; value: string }[] = [];
 
-  // User-defined headers
-  for (const h of draft.headers) {
+  // Collection default headers first (lower priority)
+  for (const h of collectionDefaultHeaders) {
     if (h.enabled && h.key.trim()) {
       result.push({
         key: interpolate(h.key, varMap),
         value: interpolate(h.value, varMap),
       });
+    }
+  }
+
+  // User-defined headers on the request (overwrite any default with same key)
+  for (const h of draft.headers) {
+    if (h.enabled && h.key.trim()) {
+      const key = interpolate(h.key, varMap);
+      const value = interpolate(h.value, varMap);
+      const existing = result.findIndex((r) => r.key.toLowerCase() === key.toLowerCase());
+      if (existing !== -1) {
+        result[existing] = { key, value };
+      } else {
+        result.push({ key, value });
+      }
     }
   }
 
@@ -83,8 +101,8 @@ function collectHeaders(
     if (!alreadySet) result.push({ key: "Content-Type", value: ct });
   }
 
-  // Auth headers
-  const auth = draft.auth;
+  // Auth headers — use the already-resolved auth (inherit chain walked in component)
+  const auth = resolvedAuth;
   if (auth.type === "bearer_token") {
     const token = interpolate(auth.token, varMap);
     result.push({ key: "Authorization", value: `Bearer ${token}` });
@@ -156,9 +174,14 @@ function bodyToString(body: RequestBody, varMap: Map<string, string>): string | 
 // Snippet generators
 // ---------------------------------------------------------------------------
 
-function generateCurl(draft: DraftRequest, varMap: Map<string, string>): string {
+function generateCurl(
+  draft: DraftRequest,
+  varMap: Map<string, string>,
+  resolvedAuth: AuthConfig,
+  collectionDefaultHeaders: { key: string; value: string; enabled: boolean }[],
+): string {
   const url = buildUrl(draft, varMap);
-  const headers = collectHeaders(draft, varMap);
+  const headers = collectHeaders(draft, varMap, resolvedAuth, collectionDefaultHeaders);
   const lines: string[] = [`curl -X ${draft.method} '${url}'`];
 
   for (const h of headers) {
@@ -185,9 +208,14 @@ function generateCurl(draft: DraftRequest, varMap: Map<string, string>): string 
   return lines.join(" \\\n");
 }
 
-function generateFetch(draft: DraftRequest, varMap: Map<string, string>): string {
+function generateFetch(
+  draft: DraftRequest,
+  varMap: Map<string, string>,
+  resolvedAuth: AuthConfig,
+  collectionDefaultHeaders: { key: string; value: string; enabled: boolean }[],
+): string {
   const url = buildUrl(draft, varMap);
-  const headers = collectHeaders(draft, varMap);
+  const headers = collectHeaders(draft, varMap, resolvedAuth, collectionDefaultHeaders);
   const bodyStr = draft.body.type !== "multipart" ? bodyToString(draft.body, varMap) : null;
 
   const opts: string[] = [];
@@ -217,9 +245,14 @@ function generateFetch(draft: DraftRequest, varMap: Map<string, string>): string
   );
 }
 
-function generateAxios(draft: DraftRequest, varMap: Map<string, string>): string {
+function generateAxios(
+  draft: DraftRequest,
+  varMap: Map<string, string>,
+  resolvedAuth: AuthConfig,
+  collectionDefaultHeaders: { key: string; value: string; enabled: boolean }[],
+): string {
   const url = buildUrl(draft, varMap);
-  const headers = collectHeaders(draft, varMap);
+  const headers = collectHeaders(draft, varMap, resolvedAuth, collectionDefaultHeaders);
   const bodyStr = draft.body.type !== "multipart" ? bodyToString(draft.body, varMap) : null;
 
   const opts: string[] = [];
@@ -431,13 +464,63 @@ export default function CodePreview({ draft }: { draft: DraftRequest }) {
     return map;
   }, [activeEnvironmentId, variablesByEnv, globalVariables]);
 
+  // Resolve inherit chain: walk up collection ancestors until we hit a
+  // concrete auth (not "inherit"), or fall back to "none".
+  const { collections } = useCollectionStore();
+  const { resolvedAuth, collectionDefaultHeaders } = useMemo(() => {
+    // Build a map for fast lookup
+    const colMap = new Map(collections.map((c) => [c.id, c]));
+
+    // Walk the ancestor chain starting from the request's own collection
+    let auth: AuthConfig = draft.auth;
+    let collId: string | null = draft.collection_id;
+
+    // Accumulate default_headers from each ancestor (child overrides parent for same key)
+    // We collect from outermost ancestor inward so child takes priority.
+    const ancestorChain: typeof collections = [];
+    while (collId) {
+      const col = colMap.get(collId);
+      if (!col) break;
+      ancestorChain.unshift(col); // prepend so root is first
+      collId = col.parent_id;
+    }
+
+    // Merge default_headers: root → ... → direct parent, child wins on same key
+    const mergedDefaultHeaders = new Map<string, { key: string; value: string; enabled: boolean }>();
+    for (const col of ancestorChain) {
+      for (const h of col.default_headers) {
+        if (h.enabled && h.key.trim()) {
+          mergedDefaultHeaders.set(h.key.toLowerCase(), h);
+        }
+      }
+    }
+
+    // Resolve auth: if request auth is "inherit", walk ancestors for first non-inherit
+    if (auth.type === "inherit") {
+      auth = { type: "none" }; // fallback
+      // Walk from direct parent upward
+      for (let i = ancestorChain.length - 1; i >= 0; i--) {
+        const col = ancestorChain[i];
+        if (col.auth.type !== "inherit") {
+          auth = col.auth;
+          break;
+        }
+      }
+    }
+
+    return {
+      resolvedAuth: auth,
+      collectionDefaultHeaders: [...mergedDefaultHeaders.values()],
+    };
+  }, [draft.auth, draft.collection_id, collections]);
+
   const code = useMemo(() => {
     switch (lang) {
-      case "curl":  return generateCurl(draft, varMap);
-      case "fetch": return generateFetch(draft, varMap);
-      case "axios": return generateAxios(draft, varMap);
+      case "curl":  return generateCurl(draft, varMap, resolvedAuth, collectionDefaultHeaders);
+      case "fetch": return generateFetch(draft, varMap, resolvedAuth, collectionDefaultHeaders);
+      case "axios": return generateAxios(draft, varMap, resolvedAuth, collectionDefaultHeaders);
     }
-  }, [lang, draft, varMap]);
+  }, [lang, draft, varMap, resolvedAuth, collectionDefaultHeaders]);
 
   const highlighted = useMemo(() => highlightCode(code, lang), [code, lang]);
 
