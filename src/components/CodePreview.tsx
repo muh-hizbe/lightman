@@ -1,10 +1,11 @@
 // CodePreview — generates cURL, axios, and fetch snippets from the current
-// draft request. Variables ({{key}}) are left as-is so users see the template.
+// draft request. Env variables and path params are resolved to their values.
 
 import { useState, useMemo } from "react";
 import type { DraftRequest } from "../stores/requestStore";
 import { substitutePathParams } from "../stores/requestStore";
 import type { RequestBody } from "../types";
+import { useEnvStore } from "../stores/envStore";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -13,12 +14,25 @@ import type { RequestBody } from "../types";
 type SnippetLang = "curl" | "axios" | "fetch";
 
 // ---------------------------------------------------------------------------
+// Variable interpolation
+// ---------------------------------------------------------------------------
+
+/**
+ * Replace every {{key}} in `text` with its value from `varMap`.
+ * Keys with no entry are left as {{key}} so the snippet stays readable.
+ */
+function interpolate(text: string, varMap: Map<string, string>): string {
+  return text.replace(/\{\{([^}]+)\}\}/g, (_m, key: string) => varMap.get(key) ?? `{{${key}}}`);
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 /** Build the final URL string (path params substituted, query string appended, api_key-in-query added). */
-function buildUrl(draft: DraftRequest): string {
-  let url = substitutePathParams(draft.url, draft.pathParams);
+function buildUrl(draft: DraftRequest, varMap: Map<string, string>): string {
+  // substitutePathParams resolves :param tokens; interpolate resolves {{var}} tokens
+  let url = interpolate(substitutePathParams(draft.url, draft.pathParams), varMap);
   const enabled = draft.params.filter((p) => p.enabled && p.key.trim());
 
   // Append api_key-in-query param if applicable
@@ -27,7 +41,13 @@ function buildUrl(draft: DraftRequest): string {
   }
 
   if (enabled.length > 0) {
-    const qs = enabled.map((p) => (p.value ? `${p.key}=${p.value}` : p.key)).join("&");
+    const qs = enabled
+      .map((p) => {
+        const k = interpolate(p.key, varMap);
+        const v = interpolate(p.value, varMap);
+        return v ? `${k}=${v}` : k;
+      })
+      .join("&");
     const hasQ = url.includes("?");
     url += (hasQ ? "&" : "?") + qs;
   }
@@ -35,23 +55,28 @@ function buildUrl(draft: DraftRequest): string {
 }
 
 /**
- * Collect headers the request will actually send:
- * - explicit headers from the draft
+ * Collect every header the request will send, with values interpolated:
+ * - explicit enabled headers from the draft
  * - Content-Type derived from the body type
- * - Auth header (for bearer / basic / api-key-in-header)
- * Returns an array of { key, value } ready for snippet generation.
+ * - Authorization / API key headers from auth config
  */
-function collectHeaders(draft: DraftRequest): { key: string; value: string }[] {
+function collectHeaders(
+  draft: DraftRequest,
+  varMap: Map<string, string>,
+): { key: string; value: string }[] {
   const result: { key: string; value: string }[] = [];
 
   // User-defined headers
   for (const h of draft.headers) {
     if (h.enabled && h.key.trim()) {
-      result.push({ key: h.key, value: h.value });
+      result.push({
+        key: interpolate(h.key, varMap),
+        value: interpolate(h.value, varMap),
+      });
     }
   }
 
-  // Content-Type from body
+  // Content-Type from body (only add when not already present)
   const ct = deriveContentType(draft.body);
   if (ct) {
     const alreadySet = result.some((h) => h.key.toLowerCase() === "content-type");
@@ -61,12 +86,17 @@ function collectHeaders(draft: DraftRequest): { key: string; value: string }[] {
   // Auth headers
   const auth = draft.auth;
   if (auth.type === "bearer_token") {
-    result.push({ key: "Authorization", value: `Bearer ${auth.token}` });
+    const token = interpolate(auth.token, varMap);
+    result.push({ key: "Authorization", value: `Bearer ${token}` });
   } else if (auth.type === "basic_auth") {
-    const encoded = btoa(`${auth.username}:${auth.password}`);
+    const user = interpolate(auth.username, varMap);
+    const pass = interpolate(auth.password, varMap);
+    const encoded = btoa(`${user}:${pass}`);
     result.push({ key: "Authorization", value: `Basic ${encoded}` });
   } else if (auth.type === "api_key" && auth.location === "header") {
-    result.push({ key: auth.key, value: auth.value });
+    const key = interpolate(auth.key, varMap);
+    const value = interpolate(auth.value, varMap);
+    result.push({ key, value });
   }
 
   return result;
@@ -88,27 +118,30 @@ function deriveContentType(body: RequestBody): string | null {
   }
 }
 
-/** Return the body string representation for a snippet. */
-function bodyToString(body: RequestBody): string | null {
+/** Return the body string representation for a snippet, with values interpolated. */
+function bodyToString(body: RequestBody, varMap: Map<string, string>): string | null {
   switch (body.type) {
     case "none":
       return null;
     case "json":
-      return body.content.trim() || null;
+      return interpolate(body.content.trim(), varMap) || null;
     case "raw":
-      return body.content.trim() || null;
+      return interpolate(body.content.trim(), varMap) || null;
     case "form_url_encoded": {
       const fields = body.fields
         .filter((f) => f.enabled && f.key.trim())
-        .map((f) => `${encodeURIComponent(f.key)}=${encodeURIComponent(f.value)}`)
+        .map((f) => {
+          const k = encodeURIComponent(interpolate(f.key, varMap));
+          const v = encodeURIComponent(interpolate(f.value, varMap));
+          return `${k}=${v}`;
+        })
         .join("&");
       return fields || null;
     }
     case "multipart": {
-      // Can't fully represent multipart in a text snippet; show field pairs
       const lines = body.fields
         .filter((f) => f.enabled && f.key.trim())
-        .map((f) => `  -F '${f.key}=${f.value}'`)
+        .map((f) => `  -F '${interpolate(f.key, varMap)}=${interpolate(f.value, varMap)}'`)
         .join(" \\\n");
       return lines || null;
     }
@@ -123,9 +156,9 @@ function bodyToString(body: RequestBody): string | null {
 // Snippet generators
 // ---------------------------------------------------------------------------
 
-function generateCurl(draft: DraftRequest): string {
-  const url = buildUrl(draft);
-  const headers = collectHeaders(draft);
+function generateCurl(draft: DraftRequest, varMap: Map<string, string>): string {
+  const url = buildUrl(draft, varMap);
+  const headers = collectHeaders(draft, varMap);
   const lines: string[] = [`curl -X ${draft.method} '${url}'`];
 
   for (const h of headers) {
@@ -135,15 +168,14 @@ function generateCurl(draft: DraftRequest): string {
   if (draft.body.type === "multipart") {
     const fields = draft.body.fields.filter((f) => f.enabled && f.key.trim());
     for (const f of fields) {
-      lines.push(`  -F '${f.key}=${f.value}'`);
+      lines.push(`  -F '${interpolate(f.key, varMap)}=${interpolate(f.value, varMap)}'`);
     }
   } else {
-    const bodyStr = bodyToString(draft.body);
+    const bodyStr = bodyToString(draft.body, varMap);
     if (bodyStr) {
       if (draft.body.type === "binary") {
         lines.push(`  --data-binary '${bodyStr}'`);
       } else {
-        // Escape single quotes inside the body
         const escaped = bodyStr.replace(/'/g, "'\\''");
         lines.push(`  --data '${escaped}'`);
       }
@@ -153,10 +185,10 @@ function generateCurl(draft: DraftRequest): string {
   return lines.join(" \\\n");
 }
 
-function generateFetch(draft: DraftRequest): string {
-  const url = buildUrl(draft);
-  const headers = collectHeaders(draft);
-  const bodyStr = draft.body.type !== "multipart" ? bodyToString(draft.body) : null;
+function generateFetch(draft: DraftRequest, varMap: Map<string, string>): string {
+  const url = buildUrl(draft, varMap);
+  const headers = collectHeaders(draft, varMap);
+  const bodyStr = draft.body.type !== "multipart" ? bodyToString(draft.body, varMap) : null;
 
   const opts: string[] = [];
   opts.push(`  method: '${draft.method}'`);
@@ -185,10 +217,10 @@ function generateFetch(draft: DraftRequest): string {
   );
 }
 
-function generateAxios(draft: DraftRequest): string {
-  const url = buildUrl(draft);
-  const headers = collectHeaders(draft);
-  const bodyStr = draft.body.type !== "multipart" ? bodyToString(draft.body) : null;
+function generateAxios(draft: DraftRequest, varMap: Map<string, string>): string {
+  const url = buildUrl(draft, varMap);
+  const headers = collectHeaders(draft, varMap);
+  const bodyStr = draft.body.type !== "multipart" ? bodyToString(draft.body, varMap) : null;
 
   const opts: string[] = [];
 
@@ -202,7 +234,6 @@ function generateAxios(draft: DraftRequest): string {
   if (draft.body.type === "multipart") {
     opts.push(`  // data: formData  // append fields to a FormData object`);
   } else if (bodyStr) {
-    // Try to parse as JSON for a cleaner object literal
     let dataStr: string;
     if (draft.body.type === "json") {
       try {
@@ -232,7 +263,6 @@ function generateAxios(draft: DraftRequest): string {
     );
   }
 
-  // Simple form for methods without body/headers
   return (
     `axios.${method}('${url}')\n` +
     "  .then((res) => console.log(res.data))\n" +
@@ -385,13 +415,29 @@ export default function CodePreview({ draft }: { draft: DraftRequest }) {
   const [lang, setLang] = useState<SnippetLang>("curl");
   const [copied, setCopied] = useState(false);
 
+  // Build variable map: global vars first, active env vars override
+  const { activeEnvironmentId, variablesByEnv, globalVariables } = useEnvStore();
+  const varMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const v of globalVariables) {
+      if (v.enabled) map.set(v.key, v.value);
+    }
+    if (activeEnvironmentId) {
+      const envVars = variablesByEnv[activeEnvironmentId] ?? [];
+      for (const v of envVars) {
+        if (v.enabled) map.set(v.key, v.value);
+      }
+    }
+    return map;
+  }, [activeEnvironmentId, variablesByEnv, globalVariables]);
+
   const code = useMemo(() => {
     switch (lang) {
-      case "curl":  return generateCurl(draft);
-      case "fetch": return generateFetch(draft);
-      case "axios": return generateAxios(draft);
+      case "curl":  return generateCurl(draft, varMap);
+      case "fetch": return generateFetch(draft, varMap);
+      case "axios": return generateAxios(draft, varMap);
     }
-  }, [lang, draft]);
+  }, [lang, draft, varMap]);
 
   const highlighted = useMemo(() => highlightCode(code, lang), [code, lang]);
 
