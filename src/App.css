@@ -3008,11 +3008,22 @@ html.dark .sidebar-notification--error {
   color: var(--color-success);
 }
 
+.about-menu__status--available {
+  color: var(--color-accent);
+  font-weight: 500;
+}
+
 .about-menu__status--error {
   color: var(--color-danger);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.about-menu__btn-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
 }
 
 .about-menu__hint {
@@ -3032,6 +3043,18 @@ html.dark .sidebar-notification--error {
   border-radius: 50%;
   animation: about-spinner 0.6s linear infinite;
   flex-shrink: 0;
+}
+
+/* Dark variant — used on secondary/ghost buttons */
+.about-menu__spinner--dark {
+  border-color: rgba(0, 0, 0, 0.15);
+  border-top-color: var(--color-text-muted);
+}
+
+html.dark .about-menu__spinner--dark,
+html:not(.light) .about-menu__spinner--dark {
+  border-color: rgba(255, 255, 255, 0.15);
+  border-top-color: var(--color-text-muted);
 }
 
 @keyframes about-spinner {

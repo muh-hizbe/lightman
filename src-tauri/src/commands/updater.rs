@@ -1,10 +1,17 @@
-// Update commands — check for a new release and install it.
+// Update commands — two-step flow: check first, then install on demand.
 //
-// Uses tauri-plugin-updater to fetch the latest release from the configured
-// endpoint, download and install it, then restart the app.
+// check_update  → fetches latest.json, returns whether an update is available
+//                 along with the new version string. Does not download anything.
+// install_update → downloads and installs the pending update, then restarts.
+//                  Must be called after check_update has confirmed availability.
 
-use tauri::AppHandle;
-use tauri_plugin_updater::UpdaterExt;
+use std::sync::Mutex;
+use tauri::{AppHandle, Manager};
+use tauri_plugin_updater::{Update, UpdaterExt};
+
+/// Shared state that holds the pending update between the check and install
+/// steps. Wrapped in a Mutex so it can be stored in Tauri's managed state.
+pub struct PendingUpdate(pub Mutex<Option<Update>>);
 
 #[derive(serde::Serialize)]
 pub struct UpdateInfo {
@@ -20,13 +27,11 @@ pub fn get_app_version(app: AppHandle) -> String {
     app.package_info().version.to_string()
 }
 
-/// Checks for an update. If one is available, downloads and installs it,
-/// then restarts the application.
-///
-/// Only returns to the frontend when no update is found — a successful
-/// install calls `app.restart()` which never returns.
+/// Checks GitHub releases for a newer version.
+/// Does NOT download anything — just returns availability info and stores the
+/// pending `Update` object in managed state for `install_update` to consume.
 #[tauri::command]
-pub async fn check_and_install_update(app: AppHandle) -> Result<UpdateInfo, String> {
+pub async fn check_update(app: AppHandle) -> Result<UpdateInfo, String> {
     let current = app.package_info().version.to_string();
 
     let updater = app
@@ -39,22 +44,51 @@ pub async fn check_and_install_update(app: AppHandle) -> Result<UpdateInfo, Stri
         .await
         .map_err(|e| format!("Update check failed: {e}"))?;
 
-    if let Some(update) = maybe_update {
-        // Download and install — blocks until the installer finishes.
-        update
-            .download_and_install(|_chunk, _total| {}, || {})
-            .await
-            .map_err(|e| format!("Update installation failed: {e}"))?;
+    match maybe_update {
+        Some(update) => {
+            let latest = update.version.clone();
+            let notes = update.body.clone();
 
-        // Restart into the new version; this call never returns.
-        app.restart();
+            // Stash the update object so install_update can use it later.
+            *app.state::<PendingUpdate>().0.lock().unwrap() = Some(update);
+
+            Ok(UpdateInfo {
+                available: true,
+                current_version: current,
+                latest_version: Some(latest),
+                release_notes: notes,
+            })
+        }
+        None => {
+            // Clear any stale pending update.
+            *app.state::<PendingUpdate>().0.lock().unwrap() = None;
+
+            Ok(UpdateInfo {
+                available: false,
+                current_version: current,
+                latest_version: None,
+                release_notes: None,
+            })
+        }
     }
+}
 
-    // Reached only when no update is available.
-    Ok(UpdateInfo {
-        available: false,
-        current_version: current,
-        latest_version: None,
-        release_notes: None,
-    })
+/// Downloads and installs the update that was found by `check_update`,
+/// then restarts the app. Errors if called before a successful `check_update`.
+#[tauri::command]
+pub async fn install_update(app: AppHandle) -> Result<(), String> {
+    let update = app
+        .state::<PendingUpdate>()
+        .0
+        .lock()
+        .unwrap()
+        .take()
+        .ok_or_else(|| "No pending update — run check_update first".to_string())?;
+
+    update
+        .download_and_install(|_chunk, _total| {}, || {})
+        .await
+        .map_err(|e| format!("Update installation failed: {e}"))?;
+
+    app.restart();
 }

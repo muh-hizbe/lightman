@@ -32,7 +32,7 @@ use commands::sample::list_samples;
 use commands::saved_response::{
     save_response, list_saved_responses, rename_saved_response, delete_saved_response,
 };
-use commands::updater::{get_app_version, check_and_install_update};
+use commands::updater::{get_app_version, check_update, install_update, PendingUpdate};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -61,6 +61,7 @@ pub fn run() {
 
             app.manage(db);
             app.manage(commands::http::CancelHandle(std::sync::Mutex::new(None)));
+            app.manage(PendingUpdate(std::sync::Mutex::new(None)));
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -112,7 +113,8 @@ pub fn run() {
             delete_saved_response,
             // Updater commands
             get_app_version,
-            check_and_install_update,
+            check_update,
+            install_update,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

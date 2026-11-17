@@ -16,10 +16,17 @@ export async function getAppVersion(): Promise<string> {
 
 /**
  * Checks GitHub releases for a newer version.
- * If one is found, downloads and installs it, then restarts the app.
- * Returns `UpdateInfo` — only reaches the caller when no update is available,
- * because a successful update triggers an immediate restart.
+ * Does NOT download anything — returns availability info only.
+ * If an update is available, the backend holds it in memory for `installUpdate`.
  */
-export async function checkAndInstallUpdate(): Promise<UpdateInfo> {
-  return invoke<UpdateInfo>("check_and_install_update");
+export async function checkUpdate(): Promise<UpdateInfo> {
+  return invoke<UpdateInfo>("check_update");
+}
+
+/**
+ * Downloads and installs the update found by the last `checkUpdate` call,
+ * then restarts the app. Never returns on success.
+ */
+export async function installUpdate(): Promise<void> {
+  return invoke<void>("install_update");
 }

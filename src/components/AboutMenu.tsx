@@ -1,15 +1,17 @@
-// AboutMenu — toolbar dropdown showing the current app version and an
-// "Update" button that checks for a newer GitHub release, downloads it,
-// installs it, and restarts the app automatically.
+// AboutMenu — toolbar dropdown with two-step update flow:
+//   1. "Check for Update" → polls GitHub, shows result.
+//   2. "Update Now" (shown only when update is available) → downloads,
+//      installs, and restarts the app.
 
 import { useEffect, useRef, useState } from "react";
-import { getAppVersion, checkAndInstallUpdate } from "../api/updater";
+import { getAppVersion, checkUpdate, installUpdate } from "../api/updater";
 
 type UpdateState =
   | { phase: "idle" }
   | { phase: "checking" }
   | { phase: "up-to-date" }
-  | { phase: "downloading" }
+  | { phase: "available"; latestVersion: string }
+  | { phase: "installing" }
   | { phase: "error"; message: string };
 
 export default function AboutMenu() {
@@ -23,6 +25,11 @@ export default function AboutMenu() {
     getAppVersion().then(setVersion).catch(() => setVersion("?"));
   }, []);
 
+  // Reset update state when dropdown closes so it feels fresh next time.
+  useEffect(() => {
+    if (!open) setUpdateState({ phase: "idle" });
+  }, [open]);
+
   // Close when clicking outside.
   useEffect(() => {
     if (!open) return;
@@ -35,12 +42,13 @@ export default function AboutMenu() {
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
-  const handleUpdate = async () => {
+  const handleCheck = async () => {
     setUpdateState({ phase: "checking" });
     try {
-      const info = await checkAndInstallUpdate();
-      // If we get here, no update was available (an update triggers restart).
-      if (!info.available) {
+      const info = await checkUpdate();
+      if (info.available && info.latest_version) {
+        setUpdateState({ phase: "available", latestVersion: info.latest_version });
+      } else {
         setUpdateState({ phase: "up-to-date" });
       }
     } catch (err) {
@@ -51,8 +59,25 @@ export default function AboutMenu() {
     }
   };
 
-  const isWorking =
-    updateState.phase === "checking" || updateState.phase === "downloading";
+  const handleInstall = async () => {
+    setUpdateState((prev) =>
+      prev.phase === "available"
+        ? { phase: "installing" }
+        : prev
+    );
+    try {
+      await installUpdate();
+      // installUpdate restarts the app — this line is never reached on success.
+    } catch (err) {
+      setUpdateState({
+        phase: "error",
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
+  };
+
+  const isChecking = updateState.phase === "checking";
+  const isInstalling = updateState.phase === "installing";
 
   return (
     <div className="about-menu" ref={menuRef}>
@@ -69,6 +94,7 @@ export default function AboutMenu() {
 
       {open && (
         <div className="about-menu__dropdown" role="dialog" aria-label="About Lightman">
+          {/* App identity row */}
           <div className="about-menu__app-row">
             <img src="/logo.png" alt="" width="28" height="28" className="about-menu__app-icon" />
             <div>
@@ -79,42 +105,70 @@ export default function AboutMenu() {
 
           <div className="about-menu__divider" />
 
-          {/* Update status feedback */}
+          {/* Status messages */}
           {updateState.phase === "up-to-date" && (
             <p className="about-menu__status about-menu__status--ok">
               ✓ Sudah versi terbaru
             </p>
           )}
+          {updateState.phase === "available" && (
+            <p className="about-menu__status about-menu__status--available">
+              ↑ Versi {updateState.latestVersion} tersedia
+            </p>
+          )}
           {updateState.phase === "error" && (
-            <p className="about-menu__status about-menu__status--error" title={updateState.message}>
+            <p
+              className="about-menu__status about-menu__status--error"
+              title={updateState.message}
+            >
               ✗ {updateState.message}
             </p>
           )}
-          {updateState.phase === "checking" && (
-            <p className="about-menu__status">Memeriksa pembaruan…</p>
-          )}
-          {updateState.phase === "downloading" && (
+          {isInstalling && (
             <p className="about-menu__status">Mengunduh dan memasang…</p>
           )}
 
-          <button
-            className="btn btn--primary about-menu__update-btn"
-            onClick={handleUpdate}
-            disabled={isWorking}
-          >
-            {isWorking ? (
-              <>
-                <span className="about-menu__spinner" aria-hidden="true" />
-                {updateState.phase === "checking" ? "Memeriksa…" : "Mengunduh…"}
-              </>
-            ) : (
-              "Cek & Pasang Update"
-            )}
-          </button>
+          {/* Primary action buttons */}
+          {updateState.phase !== "available" && !isInstalling && (
+            <button
+              className="btn btn--secondary about-menu__update-btn"
+              onClick={handleCheck}
+              disabled={isChecking}
+            >
+              {isChecking ? (
+                <>
+                  <span className="about-menu__spinner about-menu__spinner--dark" aria-hidden="true" />
+                  Memeriksa…
+                </>
+              ) : (
+                "Check for Update"
+              )}
+            </button>
+          )}
 
-          <p className="about-menu__hint">
-            Jika tersedia, update akan diunduh dan app akan dimulai ulang otomatis.
-          </p>
+          {updateState.phase === "available" && (
+            <div className="about-menu__btn-group">
+              <button
+                className="btn btn--primary about-menu__update-btn"
+                onClick={handleInstall}
+              >
+                Update Now
+              </button>
+              <button
+                className="btn btn--ghost about-menu__update-btn"
+                onClick={handleCheck}
+              >
+                Cek Ulang
+              </button>
+            </div>
+          )}
+
+          {isInstalling && (
+            <button className="btn btn--primary about-menu__update-btn" disabled>
+              <span className="about-menu__spinner" aria-hidden="true" />
+              Memasang…
+            </button>
+          )}
         </div>
       )}
     </div>
