@@ -321,26 +321,34 @@ function esc(s: string): string {
 }
 
 function highlightCurl(code: string): string {
-  // Tokenise line-by-line to keep it simple
+  // Tokenise line-by-line to keep it simple.
+  // Flags are highlighted BEFORE quoted strings so the regex only runs on
+  // unquoted text — this avoids matching `-bf` inside a UUID in a URL.
   return code
     .split("\n")
     .map((line) => {
-      // Flag tokens (--data, -H, -X, -F, --data-binary)
-      let out = line.replace(
-        /(?<![a-zA-Z])(--?[a-zA-Z][-a-zA-Z]*)/g,
-        (m) => `<span class="cp-flag">${esc(m)}</span>`
-      );
-      // Quoted strings
-      out = out.replace(/'([^']*)'/g, (_m, inner) => {
-        // Inside the string, dim the url vs method vs header pair
-        const escapedInner = esc(inner);
-        return `<span class="cp-string">'${escapedInner}'</span>`;
+      // Split the line into quoted-string tokens and unquoted tokens, then
+      // only apply flag highlighting to the unquoted portions.
+      const parts = line.split(/(\'[^\']*\')/g);
+      const processed = parts.map((part, idx) => {
+        // Odd indices are the captured quoted strings — wrap and leave alone
+        if (idx % 2 === 1) {
+          return `<span class="cp-string">${esc(part)}</span>`;
+        }
+        // Even indices are unquoted text — apply flag + keyword highlighting
+        let out = part.replace(
+          // Flags must be preceded by whitespace or start-of-string, and
+          // must not be followed by more non-space chars (i.e. they stand alone)
+          /(^|\s)(--?[a-zA-Z][a-zA-Z-]*)(?=\s|$)/g,
+          (_m, sp, flag) => `${sp}<span class="cp-flag">${esc(flag)}</span>`
+        );
+        // curl keyword
+        out = out.replace(/^(\s*)(curl)\b/, (_m, sp, kw) => `${sp}<span class="cp-keyword">${kw}</span>`);
+        // line continuation backslash at end of unquoted segment
+        out = out.replace(/\\$/, '<span class="cp-punct">\\</span>');
+        return out;
       });
-      // curl keyword at start
-      out = out.replace(/^(\s*)(curl)/, (_m, sp, kw) => `${sp}<span class="cp-keyword">${kw}</span>`);
-      // line continuation backslash
-      out = out.replace(/\\$/, '<span class="cp-punct">\\</span>');
-      return out;
+      return processed.join("");
     })
     .join("\n");
 }
