@@ -108,12 +108,12 @@ export default function AboutMenu() {
           {/* Status messages */}
           {updateState.phase === "up-to-date" && (
             <p className="about-menu__status about-menu__status--ok">
-              ✓ Sudah versi terbaru
+              ✓ Up to date
             </p>
           )}
           {updateState.phase === "available" && (
             <p className="about-menu__status about-menu__status--available">
-              ↑ Versi {updateState.latestVersion} tersedia
+              ↑ Version {updateState.latestVersion} available
             </p>
           )}
           {updateState.phase === "error" && (
@@ -125,7 +125,7 @@ export default function AboutMenu() {
             </p>
           )}
           {isInstalling && (
-            <p className="about-menu__status">Mengunduh dan memasang…</p>
+            <p className="about-menu__status">Downloading and installing…</p>
           )}
 
           {/* Primary action buttons */}
@@ -138,7 +138,7 @@ export default function AboutMenu() {
               {isChecking ? (
                 <>
                   <span className="about-menu__spinner about-menu__spinner--dark" aria-hidden="true" />
-                  Memeriksa…
+                  Checking…
                 </>
               ) : (
                 "Check for Update"
@@ -158,7 +158,7 @@ export default function AboutMenu() {
                 className="btn btn--ghost about-menu__update-btn"
                 onClick={handleCheck}
               >
-                Cek Ulang
+                Re-check
               </button>
             </div>
           )}
@@ -166,7 +166,7 @@ export default function AboutMenu() {
           {isInstalling && (
             <button className="btn btn--primary about-menu__update-btn" disabled>
               <span className="about-menu__spinner" aria-hidden="true" />
-              Memasang…
+              Installing…
             </button>
           )}
         </div>
