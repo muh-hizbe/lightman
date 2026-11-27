@@ -29,6 +29,7 @@ pub fn list_samples() -> Vec<Request> {
                 enabled: true,
             }],
             params: vec![],
+            path_params: vec![],
             body: RequestBody::None,
             auth: AuthConfig::None,
             position: 0,
@@ -57,6 +58,7 @@ pub fn list_samples() -> Vec<Request> {
                 },
             ],
             params: vec![],
+            path_params: vec![],
             body: RequestBody::Json {
                 content: "{\n  \"title\": \"Sample todo\",\n  \"completed\": false,\n  \"userId\": 1\n}"
                     .to_string(),
@@ -85,6 +87,7 @@ pub fn list_samples() -> Vec<Request> {
                 value: "lightman".to_string(),
                 enabled: true,
             }],
+            path_params: vec![],
             body: RequestBody::None,
             auth: AuthConfig::None,
             position: 2,
@@ -113,6 +116,7 @@ pub fn list_samples() -> Vec<Request> {
                 },
             ],
             params: vec![],
+            path_params: vec![],
             body: RequestBody::Json {
                 content: "{\n  \"message\": \"Hello from Lightman\"\n}".to_string(),
             },

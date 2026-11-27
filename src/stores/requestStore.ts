@@ -167,10 +167,18 @@ export const useRequestStore = create<RequestState>((set, get) => ({
 
   loadRequest: (request) => {
     const pathParamNames = extractPathParams(request.url);
-    // Restore cached response and path param values for this request, if any
+    // Restore cached response for this request, if any.
+    // For path params, prefer the saved values from the DB, falling back to
+    // the in-session cache (which holds unsaved edits), then empty string.
     const cachedResponse = request.id ? (get().responseCache[request.id] ?? null) : null;
     const cachedPathParams = request.id ? (get().pathParamCache[request.id] ?? []) : [];
-    const prevMap = new Map(cachedPathParams.map((p) => [p.name, p.value]));
+    // Build a merged map: DB values take precedence on first load; in-session
+    // cache overrides them if the user has made edits since the last save.
+    const dbMap = new Map((request.path_params ?? []).map((p) => [p.name, p.value]));
+    const cacheMap = new Map(cachedPathParams.map((p) => [p.name, p.value]));
+    // If the cache has a value (user edited during this session), use it;
+    // otherwise fall back to whatever was persisted in the DB.
+    const mergedMap = new Map([...dbMap, ...cacheMap]);
     set({
       draft: {
         id: request.id,
@@ -180,7 +188,7 @@ export const useRequestStore = create<RequestState>((set, get) => ({
         url: request.url,
         headers: request.headers,
         params: request.params,
-        pathParams: pathParamNames.map((name) => ({ name, value: prevMap.get(name) ?? "" })),
+        pathParams: pathParamNames.map((name) => ({ name, value: mergedMap.get(name) ?? "" })),
         body: request.body,
         auth: request.auth,
       },

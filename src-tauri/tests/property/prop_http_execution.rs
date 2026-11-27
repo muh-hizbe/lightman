@@ -97,6 +97,7 @@ fn make_request(method: HttpMethod, url: String) -> Request {
         url,
         headers: vec![],
         params: vec![],
+        path_params: vec![],
         body: RequestBody::None,
         auth: AuthConfig::None,
         position: 0,

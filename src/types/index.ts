@@ -42,6 +42,11 @@ export interface QueryParam {
   enabled: boolean;
 }
 
+export interface PathParam {
+  name: string;
+  value: string;
+}
+
 // ---------------------------------------------------------------------------
 // Request Body
 // ---------------------------------------------------------------------------
@@ -107,6 +112,7 @@ export interface Request {
   url: string;
   headers: Header[];
   params: QueryParam[];
+  path_params: PathParam[];
   body: RequestBody;
   auth: AuthConfig;
   position: number;

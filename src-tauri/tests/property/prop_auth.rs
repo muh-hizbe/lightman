@@ -54,6 +54,7 @@ fn request_with_auth(auth: AuthConfig) -> Request {
         url: "https://example.com".to_string(),
         headers: vec![],
         params: vec![],
+        path_params: vec![],
         body: RequestBody::None,
         auth,
         position: 0,

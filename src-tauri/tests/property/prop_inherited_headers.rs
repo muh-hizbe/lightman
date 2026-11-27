@@ -96,6 +96,7 @@ fn request_with(auth: AuthConfig, headers: Vec<Header>) -> Request {
         url: "https://example.com".to_string(),
         headers,
         params: vec![],
+        path_params: vec![],
         body: RequestBody::None,
         auth,
         position: 0,

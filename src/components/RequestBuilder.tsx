@@ -1246,6 +1246,7 @@ export default function RequestBuilder() {
         draft.url,
         draft.headers,
         draft.params,
+        draft.pathParams,
         draft.body,
         draft.auth
       );

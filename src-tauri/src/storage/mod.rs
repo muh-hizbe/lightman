@@ -51,6 +51,7 @@ fn run_migrations(conn: &Connection) -> SqlResult<()> {
     apply_migration(conn, 2, MIGRATION_V2)?;
     apply_migration(conn, 3, MIGRATION_V3)?;
     apply_migration(conn, 4, MIGRATION_V4)?;
+    apply_migration(conn, 5, MIGRATION_V5)?;
 
     Ok(())
 }
@@ -186,6 +187,14 @@ CREATE INDEX IF NOT EXISTS idx_saved_responses_request ON saved_responses(reques
 
 const MIGRATION_V4: &str = "
 ALTER TABLE history ADD COLUMN status_text TEXT NOT NULL DEFAULT '';
+";
+
+// ---------------------------------------------------------------------------
+// Migration v5 — add path_params_json to requests table
+// ---------------------------------------------------------------------------
+
+const MIGRATION_V5: &str = "
+ALTER TABLE requests ADD COLUMN path_params_json TEXT NOT NULL DEFAULT '[]';
 ";
 
 // ---------------------------------------------------------------------------
@@ -329,6 +338,7 @@ pub async fn insert_request(
     params_json: String,
     body_json: String,
     auth_json: String,
+    path_params_json: String,
     position: i64,
     created_at: String,
     updated_at: String,
@@ -338,11 +348,11 @@ pub async fn insert_request(
         conn.execute(
             "INSERT INTO requests
              (id, collection_id, name, method, url, headers_json, params_json,
-              body_json, auth_json, position, created_at, updated_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
+              body_json, auth_json, path_params_json, position, created_at, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
             params![
                 id, collection_id, name, method, url,
-                headers_json, params_json, body_json, auth_json,
+                headers_json, params_json, body_json, auth_json, path_params_json,
                 position, created_at, updated_at
             ],
         )
@@ -365,7 +375,7 @@ pub async fn get_request(
             .prepare(
                 "SELECT id, collection_id, name, method, url,
                         headers_json, params_json, body_json, auth_json,
-                        position, created_at, updated_at
+                        path_params_json, position, created_at, updated_at
                  FROM requests WHERE id = ?1",
             )
             .map_err(db_err)?;
@@ -394,7 +404,7 @@ pub async fn list_requests_by_collection(
             .prepare(
                 "SELECT id, collection_id, name, method, url,
                         headers_json, params_json, body_json, auth_json,
-                        position, created_at, updated_at
+                        path_params_json, position, created_at, updated_at
                  FROM requests
                  WHERE collection_id = ?1
                  ORDER BY position ASC",
@@ -422,6 +432,7 @@ pub async fn update_request(
     params_json: String,
     body_json: String,
     auth_json: String,
+    path_params_json: String,
     position: i64,
     updated_at: String,
 ) -> Result<(), String> {
@@ -432,11 +443,13 @@ pub async fn update_request(
              SET name = ?1, method = ?2, url = ?3,
                  headers_json = ?4, params_json = ?5,
                  body_json = ?6, auth_json = ?7,
-                 position = ?8, updated_at = ?9
-             WHERE id = ?10",
+                 path_params_json = ?8,
+                 position = ?9, updated_at = ?10
+             WHERE id = ?11",
             params![
                 name, method, url,
                 headers_json, params_json, body_json, auth_json,
+                path_params_json,
                 position, updated_at, id
             ],
         )
@@ -893,6 +906,7 @@ pub struct RequestRow {
     pub params_json: String,
     pub body_json: String,
     pub auth_json: String,
+    pub path_params_json: String,
     pub position: i64,
     pub created_at: String,
     pub updated_at: String,
@@ -910,9 +924,10 @@ impl RequestRow {
             params_json: row.get(6)?,
             body_json: row.get(7)?,
             auth_json: row.get(8)?,
-            position: row.get(9)?,
-            created_at: row.get(10)?,
-            updated_at: row.get(11)?,
+            path_params_json: row.get(9)?,
+            position: row.get(10)?,
+            created_at: row.get(11)?,
+            updated_at: row.get(12)?,
         })
     }
 }
@@ -1458,6 +1473,7 @@ mod tests {
             "[]".into(),
             r#"{"type":"none"}"#.into(),
             r#"{"type":"none"}"#.into(),
+            "[]".into(),
             0,
             now.clone(),
             now.clone(),
@@ -1503,6 +1519,7 @@ mod tests {
             "[]".into(),
             r#"{"type":"json","content":"{}"}"#.into(),
             r#"{"type":"none"}"#.into(),
+            "[]".into(),
             0,
             now.clone(),
             now.clone(),
@@ -1555,6 +1572,7 @@ mod tests {
                 "[]".into(),
                 r#"{"type":"none"}"#.into(),
                 r#"{"type":"none"}"#.into(),
+                "[]".into(),
                 pos,
                 now.clone(),
                 now.clone(),
@@ -1603,6 +1621,7 @@ mod tests {
             "[]".into(),
             r#"{"type":"none"}"#.into(),
             r#"{"type":"none"}"#.into(),
+            "[]".into(),
             0,
             now.clone(),
             now.clone(),
@@ -1621,6 +1640,7 @@ mod tests {
             "[]".into(),
             r#"{"type":"none"}"#.into(),
             r#"{"type":"none"}"#.into(),
+            "[]".into(),
             1,
             later,
         )
@@ -1666,6 +1686,7 @@ mod tests {
             "[]".into(),
             r#"{"type":"none"}"#.into(),
             r#"{"type":"none"}"#.into(),
+            "[]".into(),
             0,
             now.clone(),
             now.clone(),

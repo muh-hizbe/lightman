@@ -9,6 +9,7 @@ import type {
   Collection,
   Header,
   HttpMethod,
+  PathParam,
   QueryParam,
   Request,
   RequestBody,
@@ -99,6 +100,7 @@ export function updateRequest(
   url: string,
   headers: Header[],
   params: QueryParam[],
+  pathParams: PathParam[],
   body: RequestBody,
   auth: AuthConfig
 ): Promise<Request> {
@@ -109,6 +111,7 @@ export function updateRequest(
     url,
     headers,
     params,
+    pathParams,
     body,
     auth,
   });

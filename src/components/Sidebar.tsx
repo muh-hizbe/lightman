@@ -851,6 +851,7 @@ export default function Sidebar() {
             foundReq.url,
             foundReq.headers,
             foundReq.params,
+            foundReq.path_params,
             foundReq.body,
             foundReq.auth
           );

@@ -237,6 +237,7 @@ mod tests {
             url: url.to_string(),
             headers: vec![],
             params: vec![],
+            path_params: vec![],
             body: RequestBody::None,
             auth: AuthConfig::None,
             position: 0,

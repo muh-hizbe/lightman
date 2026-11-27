@@ -708,6 +708,7 @@ impl ImportService {
                 params_json,
                 body_json,
                 auth_json,
+                "[]".to_string(),
                 new_pos as i64,
                 now.to_string(),
                 now.to_string(),

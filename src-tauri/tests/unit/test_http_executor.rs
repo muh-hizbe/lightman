@@ -30,6 +30,7 @@ fn make_request(http_method: HttpMethod, base_url: &str, endpoint: &str) -> Requ
         url: format!("{base_url}{endpoint}"),
         headers: vec![],
         params: vec![],
+        path_params: vec![],
         body: RequestBody::None,
         auth: AuthConfig::None,
         position: 0,

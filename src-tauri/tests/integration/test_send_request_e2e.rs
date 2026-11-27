@@ -54,6 +54,7 @@ fn bare_request(url: impl Into<String>, collection_id: impl Into<String>) -> Req
         url: url.into(),
         headers: vec![],
         params: vec![],
+        path_params: vec![],
         body: RequestBody::None,
         auth: AuthConfig::None,
         position: 0,

@@ -66,6 +66,9 @@ fn request_from_row(row: RequestRow) -> Result<Request, String> {
     let auth = serde_json::from_str(&row.auth_json)
         .map_err(|e| format!("Failed to parse auth_json: {e}"))?;
 
+    let path_params = serde_json::from_str(&row.path_params_json)
+        .map_err(|e| format!("Failed to parse path_params_json: {e}"))?;
+
     Ok(Request {
         id: row.id,
         collection_id: row.collection_id,
@@ -74,6 +77,7 @@ fn request_from_row(row: RequestRow) -> Result<Request, String> {
         url: row.url,
         headers,
         params,
+        path_params,
         body,
         auth,
         position: row.position,
@@ -235,6 +239,8 @@ pub async fn create_request(
         .map_err(|e| format!("Failed to serialise body: {e}"))?;
     let auth_json = serde_json::to_string(&auth)
         .map_err(|e| format!("Failed to serialise auth: {e}"))?;
+    // New requests start with no path param values (names are derived from URL at load time).
+    let path_params_json = "[]".to_string();
 
     storage::insert_request(
         db.clone(),
@@ -247,6 +253,7 @@ pub async fn create_request(
         params_json,
         body_json,
         auth_json,
+        path_params_json,
         position,
         now.clone(),
         now,
@@ -289,6 +296,7 @@ pub async fn update_request(
     url: String,
     headers: Vec<Header>,
     params: Vec<crate::models::QueryParam>,
+    path_params: Vec<crate::models::PathParam>,
     body: crate::models::RequestBody,
     auth: crate::models::AuthConfig,
 ) -> Result<Request, String> {
@@ -308,6 +316,8 @@ pub async fn update_request(
         .map_err(|e| format!("Failed to serialise body: {e}"))?;
     let auth_json = serde_json::to_string(&auth)
         .map_err(|e| format!("Failed to serialise auth: {e}"))?;
+    let path_params_json = serde_json::to_string(&path_params)
+        .map_err(|e| format!("Failed to serialise path_params: {e}"))?;
 
     storage::update_request(
         db.clone(),
@@ -319,6 +329,7 @@ pub async fn update_request(
         params_json,
         body_json,
         auth_json,
+        path_params_json,
         existing_row.position,
         now,
     )
@@ -400,6 +411,7 @@ pub async fn duplicate_request(db: DbHandle, id: String) -> Result<Request, Stri
         existing.params_json.clone(),
         existing.body_json.clone(),
         existing.auth_json.clone(),
+        existing.path_params_json.clone(),
         position,
         now.clone(),
         now,
@@ -456,6 +468,7 @@ pub async fn reorder_request(
             sibling.params_json.clone(),
             sibling.body_json.clone(),
             sibling.auth_json.clone(),
+            sibling.path_params_json.clone(),
             new_pos as i64,
             now.clone(),
         )
@@ -825,6 +838,7 @@ mod tests {
                 "Updated".to_string(),
                 HttpMethod::Post,
                 "https://updated.example.com".to_string(),
+                vec![],
                 vec![],
                 vec![],
                 RequestBody::Json {

@@ -8,6 +8,7 @@ import type {
   Collection,
   Header,
   HttpMethod,
+  PathParam,
   QueryParam,
   Request,
   RequestBody,
@@ -70,6 +71,7 @@ interface CollectionState {
     url: string,
     headers: Header[],
     params: QueryParam[],
+    pathParams: PathParam[],
     body: RequestBody,
     auth: AuthConfig
   ) => Promise<void>;
@@ -179,8 +181,8 @@ export const useCollectionStore = create<CollectionState>((set, get) => ({
     return request;
   },
 
-  updateRequest: async (id, name, method, url, headers, params, body, auth) => {
-    const updated = await api.updateRequest(id, name, method, url, headers, params, body, auth);
+  updateRequest: async (id, name, method, url, headers, params, pathParams, body, auth) => {
+    const updated = await api.updateRequest(id, name, method, url, headers, params, pathParams, body, auth);
     set((s) => {
       const map = { ...s.requestsByCollection };
       const collectionId = updated.collection_id;

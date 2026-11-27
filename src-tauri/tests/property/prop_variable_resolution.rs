@@ -69,6 +69,7 @@ fn base_request(url: impl Into<String>) -> Request {
         url: url.into(),
         headers: vec![],
         params: vec![],
+        path_params: vec![],
         body: RequestBody::None,
         auth: AuthConfig::None,
         position: 0,

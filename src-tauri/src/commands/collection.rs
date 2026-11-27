@@ -5,7 +5,7 @@
 //
 // Requirements: 2.1, 2.2, 8.3
 
-use crate::models::{AuthConfig, Collection, Header, HttpMethod, QueryParam, Request, RequestBody};
+use crate::models::{AuthConfig, Collection, Header, HttpMethod, QueryParam, PathParam, Request, RequestBody};
 use crate::services::collection as svc;
 use crate::storage::DbHandle;
 use tauri::State;
@@ -170,7 +170,7 @@ pub async fn list_requests(
 ///
 /// # Frontend call
 /// ```ts
-/// invoke<Request>('update_request', { id, name, method, url, headers, params, body, auth })
+/// invoke<Request>('update_request', { id, name, method, url, headers, params, pathParams, body, auth })
 /// ```
 #[tauri::command]
 pub async fn update_request(
@@ -181,6 +181,7 @@ pub async fn update_request(
     url: String,
     headers: Vec<Header>,
     params: Vec<QueryParam>,
+    path_params: Vec<PathParam>,
     body: RequestBody,
     auth: AuthConfig,
 ) -> Result<Request, String> {
@@ -192,6 +193,7 @@ pub async fn update_request(
         url,
         headers,
         params,
+        path_params,
         body,
         auth,
     )

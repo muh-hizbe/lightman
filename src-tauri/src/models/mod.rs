@@ -59,6 +59,16 @@ pub struct QueryParam {
     pub enabled: bool,
 }
 
+/// A path parameter extracted from a URL template (e.g. `:id` in `/users/:id`).
+/// Values are persisted alongside the request so they survive app restarts.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PathParam {
+    /// Parameter name without the leading `:`.
+    pub name: String,
+    /// Current value to substitute when sending the request.
+    pub value: String,
+}
+
 // ---------------------------------------------------------------------------
 // Request Body (Requirement 1.3)
 // ---------------------------------------------------------------------------
@@ -196,6 +206,8 @@ pub struct Request {
     pub headers: Vec<Header>,
     /// URL query parameters.
     pub params: Vec<QueryParam>,
+    /// Path parameter values for `:param` tokens in the URL.
+    pub path_params: Vec<PathParam>,
     /// Request body.
     pub body: RequestBody,
     /// Authentication configuration.
@@ -533,6 +545,7 @@ mod tests {
                 value: "10".to_string(),
                 enabled: true,
             }],
+            path_params: vec![],
             body: RequestBody::None,
             auth: AuthConfig::None,
             position: 0,
@@ -627,6 +640,7 @@ mod tests {
             url: "https://example.com".to_string(),
             headers: vec![],
             params: vec![],
+            path_params: vec![],
             body: RequestBody::None,
             auth: AuthConfig::None,
             position: 0,
