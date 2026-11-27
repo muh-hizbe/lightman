@@ -277,6 +277,7 @@ export const useRequestStore = create<RequestState>((set, get) => ({
       url: resolvedUrl,
       headers: draft.headers,
       params: draft.params,
+      path_params: draft.pathParams,
       body: draft.body,
       auth: draft.auth,
       position: 0,

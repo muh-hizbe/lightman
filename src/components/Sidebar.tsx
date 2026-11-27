@@ -836,6 +836,7 @@ export default function Sidebar() {
             url: draft.url,
             headers: draft.headers,
             params: draft.params,
+            path_params: draft.pathParams,
             body: draft.body,
             auth: draft.auth,
             position: 0,
